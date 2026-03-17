@@ -1,0 +1,1 @@
+Start-Process -FilePath "uv" -ArgumentList "run","python","injector.py","wwm.exe" -WorkingDirectory "c:\temp\Where Winds Meet\Scripts\inject" -Verb RunAs -Wait

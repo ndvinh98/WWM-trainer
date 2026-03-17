@@ -1,0 +1,2 @@
+@echo off
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath 'uv' -ArgumentList 'run','python','injector.py','wwm.exe' -WorkingDirectory 'C:\temp\Where Winds Meet\Scripts\inject' -Verb RunAs -Wait"

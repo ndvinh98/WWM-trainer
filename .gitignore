@@ -1,0 +1,20 @@
+# Python virtual environment
+.venv/
+
+# Lua files
+# logs/
+# traces/
+dumped/
+.vscode/
+dir_object.*
+logs/
+.claude/
+.claude_memory
+.worktrees/
+traces/
+logs/
+.venv/
+__pycache__/
+source_decompiled/
+DirObject/
+unluac/
