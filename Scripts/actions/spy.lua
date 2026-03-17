@@ -42,8 +42,7 @@ end
 -- PRIVATE HELPERS
 -- ============================================================
 
--- Lightweight class detection from self (first arg of method calls)
-local function _class_of_self(level)
+function Spy:_class_of_self(level)
 	local arg_name, self_val = debug_getlocal(level, 1)
 	if not arg_name or arg_name ~= "self" then
 		return nil
@@ -78,8 +77,7 @@ local function _class_of_self(level)
 	return nil
 end
 
--- Capture function parameters from stack level
-local function capture_params(level)
+function Spy:_capture_params(level)
 	local Serialize = _G.Reg.lib("Serialize")
 	local params = {}
 	local i = 1
@@ -96,8 +94,7 @@ local function capture_params(level)
 	return table.concat(params, ", ")
 end
 
--- Capture call stack (traceback)
-local function capture_traceback(start_level)
+function Spy:_capture_traceback(start_level)
 	local stack = {}
 	local level = start_level or DEFAULT_STACK_START_LEVEL
 	while true do
@@ -128,16 +125,14 @@ end
 -- WRAPPER MODE
 -- ============================================================
 
--- Convert file path to module path
-local function _path_to_module(path)
+function Spy:_path_to_module(path)
 	local module_path = path
 	module_path = module_path:gsub("%.lua$", "")
 	module_path = module_path:gsub("[/\\]", ".")
 	return module_path
 end
 
--- Parse source_substr to extract file path and optional class name
-local function _parse_source(source)
+function Spy:_parse_source(source)
 	local colon_pos = source:find(":", 1, true)
 	if colon_pos then
 		return {
@@ -150,63 +145,54 @@ end
 
 function Spy:_start_wrapper_mode()
 	local config = self.state.config
-	local parsed = _parse_source(config.source_substr)
-	local module_path = _path_to_module(parsed.path)
+	local parsed = self:_parse_source(config.source_substr)
+	local module_path = self:_path_to_module(parsed.path)
 	local class_name = parsed.class
 	local func_name = config.func_name
 
-	local Hooks = _G.Reg.get("Hooks")
+	local HookManager = _G.Reg.lib("HookManager")
 	local Serialize = _G.Reg.lib("Serialize")
 
-	if not Hooks then
-		self:log("ERROR: Hooks module not available")
-		return false, "Hooks module required for wrapper mode"
-	end
-
-	if Hooks.is_hooked(SPY_HOOK_ID) then
+	if self:is_hooked(SPY_HOOK_ID) then
 		self:log("WARNING: Already hooked")
 		return false, "Already hooked"
 	end
 
-	-- Build display name for logging
+	local spec_string
 	local display_name
 	if class_name then
+		spec_string = module_path .. ":" .. class_name .. ":" .. func_name
 		display_name = module_path .. "." .. class_name .. ":" .. func_name
 		self:log("Hooking method: " .. config.source_substr .. " -> " .. display_name)
 	else
+		spec_string = module_path .. ":" .. func_name
 		display_name = module_path .. "." .. func_name
 		self:log("Hooking function: " .. config.source_substr .. " -> " .. display_name)
 	end
 
-	local spy_self = self
-	local callbacks = {
-		post_exec = function(args, results, traceback)
+	HookManager.register(self._name, SPY_HOOK_ID, {
+		spec = spec_string,
+		override_orig_function = false,
+		post_exec = function(self_action, args, results, traceback)
 			local signature = string.format("(%s):(%s)", Serialize.dump_value(args), Serialize.dump_value(results))
 			if config.cache_logs then
-				if spy_self.state.log_cache[signature] then
-					spy_self.state.in_hook = false
+				if self_action.state.log_cache[signature] then
+					self_action.state.in_hook = false
 					return
 				end
-				spy_self.state.log_cache[signature] = true
+				self_action.state.log_cache[signature] = true
 			end
 
-			spy_self:log("Detection incoming call for: " .. display_name)
-			spy_self:log("      Args: " .. Serialize.dump_value(args))
-			spy_self:log("      Results: " .. Serialize.dump_value(results))
+			self_action:log("Detection incoming call for: " .. display_name)
+			self_action:log("      Args: " .. Serialize.dump_value(args))
+			self_action:log("      Results: " .. Serialize.dump_value(results))
 			if config.capture_stack then
-				spy_self:log("      Traceback: " .. tostring(traceback))
+				self_action:log("      Traceback: " .. tostring(traceback))
 			end
 		end,
-	}
+	})
 
-	local ok, err
-	if class_name then
-		self:log("Using hook_method for class: " .. class_name)
-		ok, err = Hooks.hook_method(SPY_HOOK_ID, module_path, class_name, func_name, callbacks)
-	else
-		ok, err = Hooks.hook_function(SPY_HOOK_ID, module_path, func_name, callbacks)
-	end
-
+	local ok, err = pcall(function() self:hook(SPY_HOOK_ID) end)
 	if not ok then
 		self:log("ERROR: Failed to hook - " .. tostring(err))
 		self:list_G_instances()
@@ -223,9 +209,8 @@ function Spy:_stop_wrapper_mode()
 		return true
 	end
 
-	local Hooks = _G.Reg.get("Hooks")
-	if Hooks and Hooks.is_hooked(SPY_HOOK_ID) then
-		Hooks.unhook(SPY_HOOK_ID)
+	if self:is_hooked(SPY_HOOK_ID) then
+		self:unhook(SPY_HOOK_ID)
 		self:log("Wrapper mode: unhooked")
 	end
 
@@ -239,7 +224,6 @@ end
 
 function Spy:_create_spy_handler()
 	local spy_self = self
-	local Logger = _G.Reg.get("Logger")
 
 	return function(event)
 		if spy_self.state.in_hook then
@@ -262,7 +246,7 @@ function Spy:_create_spy_handler()
 		end
 
 		if config.source_substr ~= "" then
-			local parsed = _parse_source(config.source_substr)
+			local parsed = spy_self:_parse_source(config.source_substr)
 			if not string_find(src, parsed.path, 1, true) then
 				spy_self.state.in_hook = false
 				return
@@ -303,9 +287,9 @@ function Spy:_create_spy_handler()
 
 		local params, class_name, traceback_str
 		if event == "call" or event == "tail call" then
-			params = capture_params(DEFAULT_STACK_START_LEVEL + 1)
-			class_name = _class_of_self(DEFAULT_STACK_START_LEVEL + 1)
-			traceback_str = config.capture_stack and capture_traceback(DEFAULT_STACK_START_LEVEL + 1) or nil
+			params = spy_self:_capture_params(DEFAULT_STACK_START_LEVEL + 1)
+			class_name = spy_self:_class_of_self(DEFAULT_STACK_START_LEVEL + 1)
+			traceback_str = config.capture_stack and spy_self:_capture_traceback(DEFAULT_STACK_START_LEVEL + 1) or nil
 		end
 
 		local ok, err = pcall(function()
@@ -370,7 +354,7 @@ function Spy:_create_spy_handler()
 		spy_self.state.in_hook = false
 
 		if not ok then
-			pcall(Logger.log, "[Spy:ERROR] Hook handler failed: " .. tostring(err))
+			spy_self:log("ERROR: Hook handler failed: " .. tostring(err))
 		end
 	end
 end

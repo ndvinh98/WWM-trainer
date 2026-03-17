@@ -31,7 +31,7 @@ end
 -- Lazy load core module
 function Dump:_get_core()
 	if not self.state._core then
-		local Constants = _G.Reg and _G.Reg.get("Constants")
+		local Constants = _G.Reg.lib("Constants")
 		local lib_root = Constants and Constants.LIB_ROOT or "C:\\temp\\Where Winds Meet\\Scripts\\lib\\"
 		
 		if not lib_root then
@@ -61,7 +61,7 @@ end
 
 -- Get output directory (for display)
 function Dump:get_output_dir()
-	local Constants = _G.Reg and _G.Reg.get("Constants")
+	local Constants = _G.Reg.lib("Constants")
 	return Constants and Constants.LUA_DEBUGGING_ROOT or "C:\\temp\\Where Winds Meet\\LuaDebugging"
 end
 
@@ -71,38 +71,39 @@ end
 
 -- Dump all loaded modules
 function Dump:dump_all(options)
-	if Dump._is_running then
-		_log("Already running")
+	if self.state._is_running then
+		self:log("Already running")
 		return false, "Already running"
 	end
 
-	Dump._is_running = true
-	_log("Starting dump_all to: " .. Dump.get_output_dir())
+	self.state._is_running = true
+	self:log("Starting dump_all to: " .. self:get_output_dir())
 
-	local core = get_core()
+	local core = self:_get_core()
 	if not core or not core.dump_all_modules then
-		Dump._is_running = false
-		_log("ERROR: DumpCore not loaded or missing dump_all_modules")
+		self.state._is_running = false
+		self:log("ERROR: DumpCore not loaded or missing dump_all_modules")
 		return false, "DumpCore not loaded"
 	end
 
 	options = options or {}
+	local dump_self = self
 	options.write_debug = function(msg)
-		_log(msg)
+		dump_self:log(msg)
 	end
 
 	local ok, count_or_err, skipped = pcall(core.dump_all_modules, options)
 
-	Dump._is_running = false
+	self.state._is_running = false
 
 	if not ok then
-		_log("ERROR: " .. tostring(count_or_err))
+		self:log("ERROR: " .. tostring(count_or_err))
 		return false, tostring(count_or_err)
 	end
 
-	local output_dir = Dump.get_output_dir()
-	_log(string.format("Complete! %d dumped, %d skipped", count_or_err or 0, skipped or 0))
-	_log("Output folder: " .. output_dir)
+	local output_dir = self:get_output_dir()
+	self:log(string.format("Complete! %d dumped, %d skipped", count_or_err or 0, skipped or 0))
+	self:log("Output folder: " .. output_dir)
 
 	return true, output_dir
 end
@@ -110,7 +111,7 @@ end
 -- Dump a single module
 function Dump:dump_module(module_path, options)
 	if not module_path or module_path == "" then
-		_log("ERROR: module_path is required")
+		self:log("ERROR: module_path is required")
 		return nil, "module_path is required"
 	end
 
@@ -119,33 +120,30 @@ function Dump:dump_module(module_path, options)
 	local was_loaded = package.loaded[module_path] ~= nil
 	local mod_data = nil
 
-	_log("[DumpModule] ==========================================")
-	_log("[DumpModule] START: " .. module_path)
+	self:log("[DumpModule] ==========================================")
+	self:log("[DumpModule] START: " .. module_path)
 
-	-- Check if already in package.loaded
 	if was_loaded then
 		mod_data = package.loaded[module_path]
-		_log("[DumpModule] Source: package.loaded (cached)")
+		self:log("[DumpModule] Source: package.loaded (cached)")
 	else
-		-- Try to import using safe_import
-		_log("[DumpModule] Source: importing via safe_import...")
+		self:log("[DumpModule] Source: importing via safe_import...")
 		local import_start = os.clock()
-		local imported, import_err = Utils.safe_import(module_path)
+		local imported, import_err = portable.safe_import(module_path)
 		local import_time = os.clock() - import_start
-		_log(string.format("[DumpModule] Import took %.2fs", import_time))
+		self:log(string.format("[DumpModule] Import took %.2fs", import_time))
 
 		if imported then
 			mod_data = imported
-			_log("[DumpModule] Import succeeded")
+			self:log("[DumpModule] Import succeeded")
 		else
-			_log("[DumpModule] SKIP: Import failed - " .. tostring(import_err))
+			self:log("[DumpModule] SKIP: Import failed - " .. tostring(import_err))
 			return nil, "Failed to import: " .. module_path
 		end
 	end
 
-	_log("[DumpModule] Module type: " .. type(mod_data))
+	self:log("[DumpModule] Module type: " .. type(mod_data))
 
-	-- Count keys (quick pre-scan)
 	local key_count = 0
 	local count_start = os.clock()
 	pcall(function()
@@ -154,27 +152,26 @@ function Dump:dump_module(module_path, options)
 		end
 	end)
 	local count_time = os.clock() - count_start
-	_log(string.format("[DumpModule] Key count: %d (scan took %.2fs)", key_count, count_time))
+	self:log(string.format("[DumpModule] Key count: %d (scan took %.2fs)", key_count, count_time))
 
-	local core = get_core()
+	local core = self:_get_core()
 	if not core or not core.dump_module then
-		_log("ERROR: DumpCore not loaded")
+		self:log("ERROR: DumpCore not loaded")
 		return nil, "DumpCore not loaded"
 	end
 
-	-- Prepare options
+	local dump_self = self
 	options.write_debug = options.verbose and function(msg)
-		_log(msg)
+		dump_self:log(msg)
 	end or function() end
 	options.module_data = mod_data
 
-	_log("[DumpModule] Calling core.dump_module...")
+	self:log("[DumpModule] Calling core.dump_module...")
 	local dump_start = os.clock()
 	local ok, filepath_or_err, err = pcall(core.dump_module, module_path, options)
 	local dump_time = os.clock() - dump_start
-	_log(string.format("[DumpModule] core.dump_module took %.2fs", dump_time))
+	self:log(string.format("[DumpModule] core.dump_module took %.2fs", dump_time))
 
-	-- Unload module if it wasn't originally loaded (free memory)
 	if not was_loaded and options.unload_after ~= false then
 		package.loaded[module_path] = nil
 	end
@@ -182,84 +179,86 @@ function Dump:dump_module(module_path, options)
 	local total_time = os.clock() - start_time
 
 	if not ok then
-		_log("[DumpModule] ERROR: " .. tostring(filepath_or_err))
-		_log(string.format("[DumpModule] FAILED after %.2fs", total_time))
-		_log("[DumpModule] ==========================================")
+		self:log("[DumpModule] ERROR: " .. tostring(filepath_or_err))
+		self:log(string.format("[DumpModule] FAILED after %.2fs", total_time))
+		self:log("[DumpModule] ==========================================")
 		return nil, tostring(filepath_or_err)
 	end
 
 	if filepath_or_err then
-		_log(string.format("[DumpModule] COMPLETE: %.2fs total", total_time))
-		_log("[DumpModule] ==========================================")
+		self:log(string.format("[DumpModule] COMPLETE: %.2fs total", total_time))
+		self:log("[DumpModule] ==========================================")
 		return filepath_or_err, nil
 	else
-		_log("[DumpModule] ERROR: " .. tostring(err or "Unknown"))
-		_log(string.format("[DumpModule] FAILED after %.2fs", total_time))
-		_log("[DumpModule] ==========================================")
+		self:log("[DumpModule] ERROR: " .. tostring(err or "Unknown"))
+		self:log(string.format("[DumpModule] FAILED after %.2fs", total_time))
+		self:log("[DumpModule] ==========================================")
 		return nil, err or "Unknown error"
 	end
 end
 
 -- Dump GM menu
 function Dump:dump_gm(options)
-	_log("Dumping GM menu...")
+	self:log("Dumping GM menu...")
 
-	local core = get_core()
+	local core = self:_get_core()
 	if not core or not core.dump_gm then
-		_log("ERROR: DumpCore not loaded")
+		self:log("ERROR: DumpCore not loaded")
 		return nil, "DumpCore not loaded"
 	end
 
 	options = options or {}
+	local dump_self = self
 	options.write_debug = function(msg)
-		_log(msg)
+		dump_self:log(msg)
 	end
 
 	local ok, filepath_or_err, err = pcall(core.dump_gm, options)
 
 	if not ok then
-		_log("ERROR: " .. tostring(filepath_or_err))
+		self:log("ERROR: " .. tostring(filepath_or_err))
 		return nil, tostring(filepath_or_err)
 	end
 
 	if filepath_or_err then
-		_log("SUCCESS! Saved to: " .. filepath_or_err)
+		self:log("SUCCESS! Saved to: " .. filepath_or_err)
 		return filepath_or_err, nil
 	else
-		_log("ERROR: " .. tostring(err or "Unknown error"))
+		self:log("ERROR: " .. tostring(err or "Unknown error"))
 		return nil, err or "Unknown error"
 	end
 end
 
 -- Dump all boolean variables
 function Dump:dump_booleans(options)
-	_log("Scanning for booleans...")
+	self:log("Scanning for booleans...")
 
-	local core = get_core()
+	local core = self:_get_core()
 	if not core or not core.dump_booleans then
-		_log("ERROR: DumpCore not loaded")
+		self:log("ERROR: DumpCore not loaded")
 		return nil, "DumpCore not loaded"
 	end
 
 	options = options or {}
+	local dump_self = self
 	options.write_debug = function(msg)
-		_log(msg)
+		dump_self:log(msg)
 	end
 
 	local ok, vars_or_err, err = pcall(core.dump_booleans, options)
 
 	if not ok then
-		_log("ERROR: " .. tostring(vars_or_err))
+		self:log("ERROR: " .. tostring(vars_or_err))
 		return nil, tostring(vars_or_err)
 	end
 
 	if vars_or_err then
-		local output_path = Dump.get_output_dir() .. "\\booleans_dump.lua"
-		_log("SUCCESS! Found " .. #vars_or_err .. " booleans")
-		_log("Saved to: " .. output_path)
+		local output_path = self:get_output_dir() .. "\\booleans_dump.lua"
+		self:log("SUCCESS! Found " .. #vars_or_err .. " booleans")
+		self:log("Saved to: " .. output_path)
 		return vars_or_err, nil
 	else
-		_log("ERROR: " .. tostring(err or "Unknown error"))
+		self:log("ERROR: " .. tostring(err or "Unknown error"))
 		return nil, err or "Unknown error"
 	end
 end
@@ -267,13 +266,12 @@ end
 -- Dump all modules matching a path prefix
 function Dump:dump_by_prefix(path_prefix, options)
 	if not path_prefix or path_prefix == "" then
-		_log("ERROR: path_prefix is required")
+		self:log("ERROR: path_prefix is required")
 		return 0, 0, "path_prefix is required"
 	end
 
 	options = options or {}
 
-	-- Collect matching modules from package.loaded
 	local modules = {}
 	for name, mod in pairs(package.loaded) do
 		if type(name) == "string" and mod ~= nil then
@@ -285,19 +283,19 @@ function Dump:dump_by_prefix(path_prefix, options)
 
 	table.sort(modules)
 	local total = #modules
-	_log(string.format("[DumpByPrefix] Found %d modules matching '%s'", total, path_prefix))
+	self:log(string.format("[DumpByPrefix] Found %d modules matching '%s'", total, path_prefix))
 
 	local count = 0
 	local errors = 0
 
 	for i, name in ipairs(modules) do
-		_log(string.format("[DumpByPrefix] [%d/%d] %s", i, total, name))
+		self:log(string.format("[DumpByPrefix] [%d/%d] %s", i, total, name))
 
-		local ok, err = Dump.dump_module(name, {
+		local ok, err = self:dump_module(name, {
 			format = options.format,
 			depth = options.depth,
 			include_source = options.include_source,
-			unload_after = true, -- Unload imported modules after dump
+			unload_after = true,
 		})
 
 		if ok then
@@ -307,9 +305,9 @@ function Dump:dump_by_prefix(path_prefix, options)
 		end
 	end
 
-	local output_dir = Dump.get_output_dir()
-	_log(string.format("[DumpByPrefix] Complete: %d dumped, %d errors", count, errors))
-	_log("[DumpByPrefix] Output: " .. output_dir)
+	local output_dir = self:get_output_dir()
+	self:log(string.format("[DumpByPrefix] Complete: %d dumped, %d errors", count, errors))
+	self:log("[DumpByPrefix] Output: " .. output_dir)
 
 	return count, errors
 end
@@ -332,26 +330,26 @@ end
     @return boolean - true if started, false if already running
 ]]
 function Dump:dump_all_async(options)
-	if Dump._is_running then
-		_log("[AsyncDump] Sync dump already running")
+	if self.state._is_running then
+		self:log("[AsyncDump] Sync dump already running")
 		return false, "Sync dump already running"
 	end
 
-	local core = get_core()
+	local core = self:_get_core()
 	if not core or not core.dump_all_modules_async then
-		_log("[AsyncDump] ERROR: DumpCore.dump_all_modules_async not available")
+		self:log("[AsyncDump] ERROR: DumpCore.dump_all_modules_async not available")
 		return false, "Async dump not available"
 	end
 
-	_log("[AsyncDump] Starting async dump to: " .. Dump.get_output_dir())
+	self:log("[AsyncDump] Starting async dump to: " .. self:get_output_dir())
 
 	options = options or {}
+	local dump_self = self
 	options.write_debug = function(msg)
-		_log(msg)
+		dump_self:log(msg)
 	end
 	options.format = options.format or "json"
 
-	-- Wrap callbacks to add logging
 	local user_on_progress = options.on_progress
 	local user_on_complete = options.on_complete
 
@@ -362,9 +360,9 @@ function Dump:dump_all_async(options)
 	end
 
 	options.on_complete = function(count, errors)
-		local output_dir = Dump.get_output_dir()
-		_log(string.format("[AsyncDump] FINISHED: %d dumped, %d errors", count, errors))
-		_log("[AsyncDump] Output folder: " .. output_dir)
+		local output_dir = dump_self:get_output_dir()
+		dump_self:log(string.format("[AsyncDump] FINISHED: %d dumped, %d errors", count, errors))
+		dump_self:log("[AsyncDump] Output folder: " .. output_dir)
 
 		if user_on_complete then
 			pcall(user_on_complete, count, errors)
@@ -380,13 +378,13 @@ end
     @return boolean - true if cancelled, false if not running
 ]]
 function Dump:stop_async_dump()
-	local core = get_core()
+	local core = self:_get_core()
 	if not core then
 		return false
 	end
 
 	if core.cancel_async_dump then
-		_log("[AsyncDump] Requesting cancellation...")
+		self:log("[AsyncDump] Requesting cancellation...")
 		return core.cancel_async_dump()
 	elseif core.stop_async_dump then
 		return core.stop_async_dump()
@@ -401,7 +399,7 @@ end
     @return boolean
 ]]
 function Dump:is_async_running()
-	local core = get_core()
+	local core = self:_get_core()
 	if not core or not core.is_async_dump_running then
 		return false
 	end
@@ -414,7 +412,7 @@ end
     @return table|nil - { running, current, total, count, errors, elapsed }
 ]]
 function Dump:get_async_progress()
-	local core = get_core()
+	local core = self:_get_core()
 	if not core or not core.get_async_dump_progress then
 		return nil
 	end
@@ -422,7 +420,7 @@ function Dump:get_async_progress()
 end
 
 function Dump:is_running()
-	return Dump._is_running
+	return self.state._is_running
 end
 
 -- ============================================================
@@ -430,17 +428,18 @@ end
 -- ============================================================
 
 function Dump:dump_all_bytecodes_async(options)
-	local core = get_core()
+	local core = self:_get_core()
 	if not core or not core.dump_all_bytecodes_async then
-		_log("[BytecodeDumpAll] ERROR: DumpCore.dump_all_bytecodes_async not available")
+		self:log("[BytecodeDumpAll] ERROR: DumpCore.dump_all_bytecodes_async not available")
 		return false, "Bytecode dump not available"
 	end
 
-	_log("[BytecodeDumpAll] Starting async bytecode dump to: " .. Dump.get_output_dir())
+	self:log("[BytecodeDumpAll] Starting async bytecode dump to: " .. self:get_output_dir())
 
 	options = options or {}
+	local dump_self = self
 	options.write_debug = function(msg)
-		_log(msg)
+		dump_self:log(msg)
 	end
 
 	local user_on_progress = options.on_progress
@@ -453,9 +452,9 @@ function Dump:dump_all_bytecodes_async(options)
 	end
 
 	options.on_complete = function(count, errors)
-		local output_dir = Dump.get_output_dir()
-		_log(string.format("[BytecodeDumpAll] FINISHED: %d dumped, %d errors", count, errors))
-		_log("[BytecodeDumpAll] Output folder: " .. output_dir)
+		local output_dir = dump_self:get_output_dir()
+		dump_self:log(string.format("[BytecodeDumpAll] FINISHED: %d dumped, %d errors", count, errors))
+		dump_self:log("[BytecodeDumpAll] Output folder: " .. output_dir)
 
 		if user_on_complete then
 			pcall(user_on_complete, count, errors)
@@ -466,11 +465,11 @@ function Dump:dump_all_bytecodes_async(options)
 end
 
 function Dump:stop_bytecode_dump()
-	local core = get_core()
+	local core = self:_get_core()
 	if not core then return false end
 
 	if core.cancel_bytecode_dump then
-		_log("[BytecodeDumpAll] Requesting cancellation...")
+		self:log("[BytecodeDumpAll] Requesting cancellation...")
 		return core.cancel_bytecode_dump()
 	elseif core.stop_bytecode_dump then
 		return core.stop_bytecode_dump()
@@ -480,16 +479,15 @@ function Dump:stop_bytecode_dump()
 end
 
 function Dump:is_bytecode_dump_running()
-	local core = get_core()
+	local core = self:_get_core()
 	if not core or not core.is_bytecode_dump_running then
 		return false
 	end
 	return core.is_bytecode_dump_running()
 end
 
--- Get raw core module (for advanced use)
 function Dump:get_core()
-	return get_core()
+	return self:_get_core()
 end
 
 -- ============================================================
@@ -520,12 +518,17 @@ local function _write_json_file(data, filename, rapidjson)
 	return true, nil
 end
 
--- Helper: Setup output directory
--- Returns: success (bool), error_message (string or nil)
-local function _setup_output_dir(dir_path)
-	local ok, err = Utils.ensure_dir(dir_path)
+function Dump:_setup_output_dir(dir_path)
+	local ok = os.execute('mkdir "' .. dir_path .. '" 2>nul')
 	if not ok then
-		return false, "Failed to create directory: " .. tostring(err)
+		-- Directory might already exist, check by trying to open a file
+		local test = io.open(dir_path .. "\\.__test", "w")
+		if test then
+			test:close()
+			os.remove(dir_path .. "\\.__test")
+			return true, nil
+		end
+		return false, "Failed to create directory: " .. dir_path
 	end
 	return true, nil
 end

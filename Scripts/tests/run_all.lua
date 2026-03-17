@@ -58,6 +58,7 @@ local action_files = {
     "combat",
     "xinfa_buffs",
     "weapon_skins",
+    "suit_skins",
     "spy",
     "gm_panel",
     "effects",
@@ -65,6 +66,8 @@ local action_files = {
     "parry",
     "sync_observer",
     "parry_online",
+    "trace",
+    "dump",
 }
 
 local load_ok, load_fail = 0, 0
@@ -103,6 +106,12 @@ local test_suites = {
     "test_parry_online",
     "test_ui_apply",
     "test_reload",
+    "test_suit_skins",
+    "test_weapon_skins",
+    "test_xinfa_buffs",
+    "test_spy",
+    "test_dump",
+    "test_trace",
 }
 
 local suite_ok, suite_fail = 0, 0

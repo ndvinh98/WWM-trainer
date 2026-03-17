@@ -157,7 +157,9 @@ function GMPanel:open()
 	self:log("Opening GM Panel...")
 
 	local ok, err = pcall(function()
-		local GmShortcutWindow = require(MODULE_GM_SHORTCUT).GmShortcutWindow
+		local mod = portable.safe_import(MODULE_GM_SHORTCUT)
+		local GmShortcutWindow = mod and mod.GmShortcutWindow
+		if not GmShortcutWindow then error("GmShortcutWindow not found") end
 		G.ui_manager:get_or_load_window(GmShortcutWindow)
 	end)
 	if not ok then

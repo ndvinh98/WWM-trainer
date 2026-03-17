@@ -63,7 +63,7 @@ function AutoLoot:_debug(msg)
 end
 
 function AutoLoot:_get_event_consts()
-	local ok, m = pcall(require, "hexm.client.consts.event_consts")
+	local ok, m = pcall(portable.safe_import, "hexm.client.consts.event_consts")
 	if ok then return m end
 	self:_debug("WARN: could not load event_consts: " .. tostring(m))
 	return nil
@@ -414,7 +414,8 @@ function AutoLoot:_break_entity(entity, interact_comp)
 	local res2dmg = ClassUtils.CustomMapType({ [posui_resource_id] = -99999 }):to_valid_dict()
 
 	local ok1, e1 = pcall(function()
-		local InteractDataManager = require("hexm.common.base.interact_comp.interact_data_manager").InteractDataManager
+		local idm_mod = portable.safe_import("hexm.common.base.interact_comp.interact_data_manager")
+		local InteractDataManager = idm_mod and idm_mod.InteractDataManager
 		local mgr = InteractDataManager()
 		mgr:change_client_interact_wanfa_resource(
 			interact_comp,
@@ -661,7 +662,7 @@ function AutoLoot:do_scan()
 	local targets = G.space:get_entities_in_range(G.main_player:get_position(), self.state.entity_radius, nil, filter_ent, true)
 	self:_debug("Total entities in range: " .. tostring(#targets))
 
-	local interact_misc = require("hexm.common.misc.interact_misc")
+	local interact_misc = portable.safe_import("hexm.common.misc.interact_misc")
 	for _, t in pairs(targets) do
 		local Serialize = _G.Reg.lib("Serialize")
 		self:_debug(string.format("Entity | id=%s no=%s tag=%s", t.entity_id, t.entity_no, Serialize.dump_value(t.tag)))

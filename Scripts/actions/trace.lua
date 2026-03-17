@@ -29,8 +29,8 @@ end
 -- Lazy load core module
 function Trace:_get_core()
 	if not self.state._core then
-		local Constants = _G.Reg and _G.Reg.get("Constants")
-		local lib_root = Constants and Constants.LIB_ROOT or (_G.Reg and _G.Reg.lib("Constants") and _G.Reg.lib("Constants").LIB_ROOT) or "C:\\temp\\Where Winds Meet\\Scripts\\lib\\"
+		local Constants = _G.Reg.lib("Constants")
+		local lib_root = Constants and Constants.LIB_ROOT or "C:\\temp\\Where Winds Meet\\Scripts\\lib\\"
 		local ok, core = pcall(dofile, lib_root .. "trace_core.lua")
 		if ok and core then
 			self.state._core = core
@@ -106,7 +106,7 @@ function Trace:get_output_path()
 	if core and core.get_output_path then
 		return core.get_output_path()
 	end
-	local Constants = _G.Reg and _G.Reg.get("Constants")
+	local Constants = _G.Reg.lib("Constants")
 	return Constants and (Constants.SCRIPTS_ROOT .. "\\traces") or "C:\\temp\\Where Winds Meet\\Scripts\\traces"
 end
 

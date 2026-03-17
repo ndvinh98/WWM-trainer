@@ -21,8 +21,7 @@ end
 -- DATA EXTRACTION
 -- ============================================================
 
---- Translate a TID to display text
-local function _translate(tid)
+function XinfaBuffs:_translate(tid)
 	if not tid then
 		return nil
 	end
@@ -35,8 +34,7 @@ local function _translate(tid)
 	return nil
 end
 
---- Get passive skill ID for a xinfa at a given rank from data tables
-local function _get_passive_skill_id(xinfa_id, rank, xinfa_row)
+function XinfaBuffs:_get_passive_skill_id(xinfa_id, rank, xinfa_row)
 	if rank and rank > 0 then
 		local uprank_key = xinfa_id * 100 + rank
 		local uprank_data = G.datam.xinfa_uprank_info and G.datam.xinfa_uprank_info:get(uprank_key)
@@ -47,12 +45,10 @@ local function _get_passive_skill_id(xinfa_id, rank, xinfa_row)
 			end
 		end
 	end
-	-- Rank 0 or fallback: use base row
 	return xinfa_row:get("passive_skill_id")
 end
 
---- Get buff list from a passive skill ID
-local function _get_buff_ids(passive_skill_id)
+function XinfaBuffs:_get_buff_ids(passive_skill_id)
 	if not passive_skill_id or not G.datam.passive_skills then
 		return {}
 	end
@@ -64,14 +60,13 @@ local function _get_buff_ids(passive_skill_id)
 	local condition = ps_data:get("condition", 0)
 	if condition ~= 0 then
 		return {}
-	end -- Only auto-add buffs
+	end
 
 	local buff_ids = ps_data:get("buff_id")
 	if not buff_ids then
 		return {}
 	end
 
-	-- Convert to plain list
 	local result = {}
 	for _, bid in pairs(buff_ids) do
 		result[#result + 1] = tonumber(bid)
@@ -79,18 +74,16 @@ local function _get_buff_ids(passive_skill_id)
 	return result
 end
 
---- Build rank progression for a xinfa
-local function _build_rank_progression(xinfa_id, xinfa_row)
+function XinfaBuffs:_build_rank_progression(xinfa_id, xinfa_row)
 	local max_rank = xinfa_row:get("max_advanced_lv", 6)
 	local ranks = {}
 
-	-- Collect unique passive skill IDs per rank
 	local seen_ps = {}
 	for rank = 0, max_rank do
-		local ps_id = _get_passive_skill_id(xinfa_id, rank, xinfa_row)
+		local ps_id = self:_get_passive_skill_id(xinfa_id, rank, xinfa_row)
 		if ps_id and not seen_ps[ps_id] then
 			seen_ps[ps_id] = true
-			local buff_ids = _get_buff_ids(ps_id)
+			local buff_ids = self:_get_buff_ids(ps_id)
 			if #buff_ids > 0 then
 				ranks[#ranks + 1] = {
 					rank = rank,
@@ -131,14 +124,14 @@ function XinfaBuffs:generate_data()
 		local xinfa_id = tonumber(entry[1])
 		local row = entry[2]
 		if xinfa_id and row then
-			local name = _translate(row:get("name", nil)) or ("Xinfa #" .. xinfa_id)
+			local name = self:_translate(row:get("name", nil)) or ("Xinfa #" .. xinfa_id)
 			local xinfa_type = row:get("type", 0)
 			local star = row:get("star", 0)
 			local liupai_id = row:get("liupai_id", 0)
 			local icon_no = row:get("icon_no", "")
 
 			-- Build rank progression (passive_skill -> buff_ids)
-			local ranks, max_rank = _build_rank_progression(xinfa_id, row)
+			local ranks, max_rank = self:_build_rank_progression(xinfa_id, row)
 
 			-- Get highest rank buff list as default display
 			local highest_rank = ranks[#ranks]
@@ -276,8 +269,7 @@ function XinfaBuffs:_remove_buff(buff_id)
 	return false
 end
 
---- Collect all buff IDs across all ranks for a xinfa
-local function _collect_all_rank_buffs(xinfa)
+function XinfaBuffs:_collect_all_rank_buffs(xinfa)
 	local all = {}
 	for _, r in ipairs(xinfa.ranks) do
 		for _, bid in ipairs(r.buff_ids) do
@@ -323,7 +315,7 @@ function XinfaBuffs:apply(xinfa_id, rank)
 	end
 
 	-- Remove lower-rank buffs that are NOT in the target set
-	local all_rank_buffs = _collect_all_rank_buffs(xinfa)
+	local all_rank_buffs = self:_collect_all_rank_buffs(xinfa)
 	local removed_lower = 0
 	for bid, _ in pairs(all_rank_buffs) do
 		if not target_set[bid] then

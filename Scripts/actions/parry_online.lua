@@ -142,7 +142,7 @@ end
 function ParryOnline:_ensure_predict_deps()
 	if not self.state.DateTimeManager then
 		pcall(function()
-			self.state.DateTimeManager = require("hexm.common.datetime_manager").DateTimeManager
+			self.state.DateTimeManager = portable.safe_import("hexm.common.datetime_manager").DateTimeManager
 		end)
 	end
 	if not self.state.abc_cache then
@@ -177,27 +177,27 @@ function ParryOnline:_safe_get(obj, key, default)
 	return default
 end
 
-local function _is_pairable(v)
+function ParryOnline:_is_pairable(v)
 	local t = type(v)
 	return t == "table" or t == "dict" or t == "list"
 end
 
-local function _safe_map_get(obj, key)
-	if not _is_pairable(obj) then return nil end
+function ParryOnline:_safe_map_get(obj, key)
+	if not self:_is_pairable(obj) then return nil end
 	local ok, val = pcall(function() return obj[key] end)
 	return ok and val or nil
 end
 
-local function _to_plain_table(v)
-	if not _is_pairable(v) then return v end
+function ParryOnline:_to_plain_table(v)
+	if not self:_is_pairable(v) then return v end
 	local out = {}
 	for k, child in pairs(v) do
-		out[k] = _to_plain_table(child)
+		out[k] = self:_to_plain_table(child)
 	end
 	return out
 end
 
-local function _sort_hits_by_ts(hits)
+function ParryOnline:_sort_hits_by_ts(hits)
 	table.sort(hits, function(a, b)
 		if a.ts == b.ts then return tostring(a.collider) < tostring(b.collider) end
 		return a.ts < b.ts
@@ -248,37 +248,37 @@ end
 
 local NPC_LEARNED_PATH = nil
 
-local function _path_npc_learned()
+function ParryOnline:_path_npc_learned()
 	if NPC_LEARNED_PATH then return NPC_LEARNED_PATH end
-	local Constants = _G.Reg.lib("Constants") or _G.Reg.get("Constants")
+	local Constants = _G.Reg.lib("Constants")
 	NPC_LEARNED_PATH = Constants.SCRIPTS_ROOT .. "\\data\\npc_learned.json"
 	return NPC_LEARNED_PATH
 end
 
-local function _sanitize_json_number(v, default)
+function ParryOnline:_sanitize_json_number(v, default)
 	local n = tonumber(v)
 	if not n or n ~= n or n == math.huge or n == -math.huge then return default or 0 end
 	return n
 end
 
-local function _sanitize_npc_learned_entry(entry)
-	if not _is_pairable(entry) then return nil end
-	local ts_sum = _sanitize_json_number(_safe_map_get(entry, "ts_sum"), 0)
-	local count = _sanitize_json_number(_safe_map_get(entry, "count"), 0)
-	local ts_avg = _sanitize_json_number(_safe_map_get(entry, "ts_avg"), 0)
+function ParryOnline:_sanitize_npc_learned_entry(entry)
+	if not self:_is_pairable(entry) then return nil end
+	local ts_sum = self:_sanitize_json_number(self:_safe_map_get(entry, "ts_sum"), 0)
+	local count = self:_sanitize_json_number(self:_safe_map_get(entry, "count"), 0)
+	local ts_avg = self:_sanitize_json_number(self:_safe_map_get(entry, "ts_avg"), 0)
 	if count > 0 then ts_avg = ts_sum / count end
 	return { ts_sum = ts_sum, count = count, ts_avg = ts_avg }
 end
 
-local function _npc_learned_for_json(src)
+function ParryOnline:_npc_learned_for_json(src)
 	local out = {}
-	if not _is_pairable(src) then return out end
+	if not self:_is_pairable(src) then return out end
 	for anim_key, anim_table in pairs(src) do
-		if _is_pairable(anim_table) then
+		if self:_is_pairable(anim_table) then
 			local anim_out = {}
 			local has_entries = false
 			for hit_key, entry in pairs(anim_table) do
-				local clean_entry = _sanitize_npc_learned_entry(entry)
+				local clean_entry = self:_sanitize_npc_learned_entry(entry)
 				if clean_entry then
 					anim_out[tostring(hit_key)] = clean_entry
 					has_entries = true
@@ -290,14 +290,14 @@ local function _npc_learned_for_json(src)
 	return out
 end
 
-local function _sorted_string_keys(t)
+function ParryOnline:_sorted_string_keys(t)
 	local keys = {}
 	for k in pairs(t) do keys[#keys + 1] = tostring(k) end
 	table.sort(keys)
 	return keys
 end
 
-local function _json_escape_string(s)
+function ParryOnline:_json_escape_string(s)
 	s = tostring(s)
 	s = s:gsub("\\", "\\\\")
 	s = s:gsub('"', '\\"')
@@ -309,32 +309,32 @@ local function _json_escape_string(s)
 	return '"' .. s .. '"'
 end
 
-local function _json_encode_number(v)
-	local n = _sanitize_json_number(v, 0)
+function ParryOnline:_json_encode_number(v)
+	local n = self:_sanitize_json_number(v, 0)
 	return string.format("%.17g", n)
 end
 
-local function _encode_npc_learned_json(src)
-	local clean = _npc_learned_for_json(src)
+function ParryOnline:_encode_npc_learned_json(src)
+	local clean = self:_npc_learned_for_json(src)
 	local parts = { "{" }
-	local anim_keys = _sorted_string_keys(clean)
+	local anim_keys = self:_sorted_string_keys(clean)
 	for i, anim_key in ipairs(anim_keys) do
 		if i > 1 then parts[#parts + 1] = "," end
-		parts[#parts + 1] = _json_escape_string(anim_key)
+		parts[#parts + 1] = self:_json_escape_string(anim_key)
 		parts[#parts + 1] = ":{"
 		local anim_table = clean[anim_key]
-		local hit_keys = _sorted_string_keys(anim_table)
+		local hit_keys = self:_sorted_string_keys(anim_table)
 		for j, hit_key in ipairs(hit_keys) do
 			if j > 1 then parts[#parts + 1] = "," end
 			local entry = anim_table[hit_key]
-			parts[#parts + 1] = _json_escape_string(hit_key)
+			parts[#parts + 1] = self:_json_escape_string(hit_key)
 			parts[#parts + 1] = ":{"
 			parts[#parts + 1] = '"count":'
-			parts[#parts + 1] = _json_encode_number(entry.count)
+			parts[#parts + 1] = self:_json_encode_number(entry.count)
 			parts[#parts + 1] = ',"ts_avg":'
-			parts[#parts + 1] = _json_encode_number(entry.ts_avg)
+			parts[#parts + 1] = self:_json_encode_number(entry.ts_avg)
 			parts[#parts + 1] = ',"ts_sum":'
-			parts[#parts + 1] = _json_encode_number(entry.ts_sum)
+			parts[#parts + 1] = self:_json_encode_number(entry.ts_sum)
 			parts[#parts + 1] = "}"
 		end
 		parts[#parts + 1] = "}"
@@ -344,18 +344,18 @@ local function _encode_npc_learned_json(src)
 end
 
 function ParryOnline:_load_npc_learned()
-	local path = _path_npc_learned()
+	local path = self:_path_npc_learned()
 	local ok, data = pcall(function()
 		local f = io.open(path, "r")
 		if not f then return nil end
 		local raw = f:read("*a")
 		f:close()
-		local cjson = require("cjson")
+		local cjson = portable.safe_import("cjson")
 		return cjson.decode(raw)
 	end)
 	if ok and data then
 		self:log(string.format("PREDICT | loaded npc_learned from %s", path))
-		return _to_plain_table(data)
+		return self:_to_plain_table(data)
 	end
 	self:log(string.format("PREDICT | failed to load npc_learned.json: %s", tostring(data)))
 	return nil
@@ -363,9 +363,9 @@ end
 
 function ParryOnline:_save_npc_learned()
 	if not self.state.save_npc_learned then return end
-	local path = _path_npc_learned()
+	local path = self:_path_npc_learned()
 	local ok, err = pcall(function()
-		local raw = _encode_npc_learned_json(self.state.npc_learned)
+		local raw = self:_encode_npc_learned_json(self.state.npc_learned)
 		local f = io.open(path, "w")
 		if not f then return "io.open failed" end
 		f:write(raw)
@@ -380,14 +380,14 @@ end
 
 function ParryOnline:_load_al_static()
 	if self.state.al_static then return self.state.al_static end
-	local Constants = _G.Reg.lib("Constants") or _G.Reg.get("Constants")
+	local Constants = _G.Reg.lib("Constants")
 	local path = Constants.SCRIPTS_ROOT .. "\\data\\al_static_index.json"
 	local ok, data = pcall(function()
 		local f = io.open(path, "r")
 		if not f then return nil end
 		local raw = f:read("*a")
 		f:close()
-		local cjson = require("cjson")
+		local cjson = portable.safe_import("cjson")
 		return cjson.decode(raw)
 	end)
 	if ok and data then
@@ -501,12 +501,12 @@ function ParryOnline:_intercept_on_bone_hit(args)
 			local cname = result.colliderName
 			if cname and anim then
 				local ckey = tostring(cname)
-				local anim_table = _safe_map_get(self.state.npc_learned, anim_key)
+				local anim_table = self:_safe_map_get(self.state.npc_learned, anim_key)
 				if not anim_table then
 					anim_table = {}
 					self.state.npc_learned[anim_key] = anim_table
 				end
-				local entry = _safe_map_get(anim_table, ckey)
+				local entry = self:_safe_map_get(anim_table, ckey)
 				if not entry then
 					entry = { ts_sum = 0, count = 0, ts_avg = 0 }
 					anim_table[ckey] = entry
@@ -568,12 +568,12 @@ function ParryOnline:_intercept_do_attack(args)
 		local anim_key = tostring(anim)
 
 		-- Learn timing
-		local anim_table = _safe_map_get(self.state.npc_learned, anim_key)
+		local anim_table = self:_safe_map_get(self.state.npc_learned, anim_key)
 		if not anim_table then
 			anim_table = {}
 			self.state.npc_learned[anim_key] = anim_table
 		end
-		local entry = _safe_map_get(anim_table, attack_key)
+		local entry = self:_safe_map_get(anim_table, attack_key)
 		if not entry then
 			entry = { ts_sum = 0, count = 0, ts_avg = 0 }
 			anim_table[attack_key] = entry
@@ -629,11 +629,11 @@ function ParryOnline:_try_predict_behit(skill_driver)
 
 	-- Source: runtime-learned NPC timing
 	local anim_key = tostring(anim)
-	local learned_table = _safe_map_get(self.state.npc_learned, anim_key)
+	local learned_table = self:_safe_map_get(self.state.npc_learned, anim_key)
 	if learned_table then
 		for hit_key, data in pairs(learned_table) do
-			local ts_sum = tonumber(_safe_map_get(data, "ts_sum")) or 0
-			local count = tonumber(_safe_map_get(data, "count")) or 0
+			local ts_sum = tonumber(self:_safe_map_get(data, "ts_sum")) or 0
+			local count = tonumber(self:_safe_map_get(data, "count")) or 0
 			if count > 0 then
 				local ts_avg = ts_sum / count
 				hits[#hits + 1] = {
@@ -646,7 +646,7 @@ function ParryOnline:_try_predict_behit(skill_driver)
 		end
 		if #hits > 0 then
 			source = "learned"
-			_sort_hits_by_ts(hits)
+			self:_sort_hits_by_ts(hits)
 		end
 	end
 

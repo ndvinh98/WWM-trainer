@@ -24,7 +24,7 @@ end
 
 -- ── Helpers ──
 
-local function _get_combat_action()
+function World:_get_combat_action()
 	local ok, mod = pcall(portable.safe_import, "hexm.client.ui.windows.gm.gm_combat.combat_train_action")
 	if ok and mod then
 		return mod
@@ -36,7 +36,7 @@ end
 
 function World:set_speed(speed)
 	local target = speed or 1.0
-	local action = _get_combat_action()
+	local action = self:_get_combat_action()
 
 	if action and action.set_game_speed then
 		pcall(action.set_game_speed, target)
@@ -73,7 +73,7 @@ function World:kill_npc()
 	self:log("Kill NPC triggered")
 	local count = 0
 	local mp = G.main_player
-	local action = _get_combat_action()
+	local action = self:_get_combat_action()
 
 	if action then
 		if action.set_npc_mortal then
