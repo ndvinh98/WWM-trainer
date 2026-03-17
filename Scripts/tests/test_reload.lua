@@ -119,8 +119,28 @@ assert_eq(inst2.state.counter, 5, "persistent counter still 5 after re-load")
 assert_eq(type(inst2.state.temp_data), "table", "transient data reset to default")
 assert_false(inst2.state.is_enabled, "starts disabled after reload")
 
+-- ── Test: reload snapshot actively reloads modules and restores hooks ──
+
+HookManager.clear_module("tests.fixtures.reload_restore")
+Reg._ns("modules")["tests.fixtures.reload_restore"] = nil
+Reg._ns("state")["tests.fixtures.reload_restore"] = nil
+Reg._ns("reload_hooks")["tests.fixtures.reload_restore"] = { test_hook = true }
+
+assert_true(type(Reg.restore_reloaded_modules) == "function", "restore_reloaded_modules exists")
+
+local restored_count = Reg.restore_reloaded_modules()
+local restored_mod = Reg.module("tests.fixtures.reload_restore")
+
+assert_true(restored_count >= 1, "restore_reloaded_modules reloads at least one module")
+assert_true(restored_mod, "reload snapshot module reloaded")
+assert_true(restored_mod:is_hooked("test_hook"), "previously active hook restored after module reload")
+assert_false(Reg._ns("reload_hooks")["tests.fixtures.reload_restore"], "restore intent consumed after reload")
+
 -- ── Cleanup ──
 
+HookManager.clear_module("tests.fixtures.reload_restore")
+Reg._ns("modules")["tests.fixtures.reload_restore"] = nil
+Reg._ns("state")["tests.fixtures.reload_restore"] = nil
 Reg._ns("modules")["test.reload_mod"] = nil
 Reg._ns("state")["test.reload_mod"] = nil
 Reg._ns("modules")["test.fake_module"] = nil

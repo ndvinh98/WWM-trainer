@@ -162,6 +162,40 @@ function Reg.reload_all()
 	_log("Done. Re-dofile action modules to pick up changes.")
 end
 
+function Reg.restore_reloaded_modules()
+	local log = _G[_K_LIB].Logger
+	local function _log(msg)
+		if log then log.log("[Reg.reload] " .. msg) end
+	end
+
+	local reload_hooks = _G[_K_RELOAD_HOOKS] or {}
+	local modules = {}
+	for module_name in pairs(reload_hooks) do
+		modules[#modules + 1] = module_name
+	end
+	table.sort(modules)
+
+	local restored = 0
+	for _, module_name in ipairs(modules) do
+		local rel_path = module_name:gsub("%.", "\\") .. ".lua"
+		local full_path = _ROOT .. "\\" .. rel_path
+		_log("Re-loading module for hook restore: " .. module_name)
+		local ok, err = pcall(dofile, full_path)
+		if ok then
+			restored = restored + 1
+		else
+			_log("Failed to re-load module " .. module_name .. ": " .. tostring(err))
+			reload_hooks[module_name] = nil
+		end
+	end
+
+	if restored > 0 then
+		_log("Re-loaded " .. restored .. " module(s) for hook restore")
+	end
+
+	return restored
+end
+
 -- ── Legacy accessors (kept for migration) ──
 
 function Reg.key(name)
@@ -248,6 +282,10 @@ Reg.set_lib("HookManager", HookManager)
 -- Load ActionBase
 local ActionBase = dofile(_ROOT .. "\\lib\\action_base.lua")
 Reg.set_lib("ActionBase", ActionBase)
+
+if _is_reload then
+	Reg.restore_reloaded_modules()
+end
 
 -- ============================================================
 -- LEGACY UTILS SHIM (for UI components not yet migrated)
