@@ -326,22 +326,6 @@ MenuConfig.TABS = {
 				action = MenuController and MenuController.handle_search_module,
 			},
 			{
-				id = "dump_module",
-				type = "input",
-				label = "Dump Specific Module",
-				placeholder = "hexm.client.ui...",
-				default_value = "hexm.client.ui.windows.gm.gm_combat.combat_train_action",
-				action = MenuController and MenuController.handle_dump_module,
-			},
-			{
-				id = "dump_by_path",
-				type = "input",
-				label = "Dump by Path",
-				placeholder = "hexm.client.ui...",
-				default_value = "hexm.client.ui.windows.gm",
-				action = MenuController and MenuController.handle_dump_by_path,
-			},
-			{
 				id = "dump_all_bytecodes",
 				type = "toggle",
 				label = "Dump All Bytecodes",

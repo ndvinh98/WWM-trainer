@@ -25,8 +25,8 @@ T.run("no Utils reference in module", function()
 		local content = f:read("*a")
 		f:close()
 		local has_utils = content:find('Reg%.get%("Utils"%)') ~= nil
-		T.assert_false(has_utils, "no Reg.get(\"Utils\") in menu_config.lua")
-		local has_safe_dofile = content:find('Utils%.safe_dofile') ~= nil
+		T.assert_false(has_utils, 'no Reg.get("Utils") in menu_config.lua')
+		local has_safe_dofile = content:find("Utils%.safe_dofile") ~= nil
 		T.assert_false(has_safe_dofile, "no Utils.safe_dofile in menu_config.lua")
 	else
 		T.assert_true(false, "could not read source file")
@@ -54,6 +54,32 @@ end)
 T.run("state defaults exist", function()
 	T.assert_not_nil(MenuConfig.DUMP_FORMAT, "DUMP_FORMAT exists")
 	T.assert_eq(type(MenuConfig.AUTO_SPLIT), "boolean", "AUTO_SPLIT is boolean")
+end)
+
+T.run("removed legacy dump controls are absent", function()
+	local ids = {}
+	for _, tab in ipairs(MenuConfig.TABS) do
+		for _, item in ipairs(tab.items) do
+			ids[item.id] = true
+		end
+	end
+
+	T.assert_false(ids.dump_module == true, "dump_module removed")
+	T.assert_false(ids.dump_by_path == true, "dump_by_path removed")
+end)
+
+T.run("retained dump controls still exist", function()
+	local ids = {}
+	for _, tab in ipairs(MenuConfig.TABS) do
+		for _, item in ipairs(tab.items) do
+			ids[item.id] = true
+		end
+	end
+
+	T.assert_true(ids.dump_all_bytecodes == true, "dump_all_bytecodes kept")
+	T.assert_true(ids.dump_grey_table == true, "dump_grey_table kept")
+	T.assert_true(ids.dump_dir_object_cache == true, "dump_dir_object_cache kept")
+	T.assert_true(ids.dump_dir_object_weak_cache == true, "dump_dir_object_weak_cache kept")
 end)
 
 T.summary()

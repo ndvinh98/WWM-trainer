@@ -31,6 +31,7 @@ local SUBTYPE_NAMES = {
 function WeaponSkins:define_state()
 	return {
 		persistent = {
+			is_enabled = false,
 			item_nos = {}, -- List of weapon skin item_nos to persistently apply
 			weapon_data = nil, -- Generated weapon data cache
 			weapon_skin_list = nil,
@@ -209,7 +210,9 @@ function WeaponSkins:get_bow_list()
 end
 
 function WeaponSkins:get_weapons_for_kongfu(kongfu_id)
-	if not kongfu_id then return {} end
+	if not kongfu_id then
+		return {}
+	end
 	local all = self:get_weapon_list()
 	local filtered = {}
 	for _, weapon in ipairs(all) do
@@ -228,7 +231,9 @@ end
 
 function WeaponSkins:get_primary_weapon_list()
 	local mp = G and G.main_player
-	if not mp then return {} end
+	if not mp then
+		return {}
+	end
 	local kongfu_id
 	pcall(function()
 		if mp.enchant_get_kongfu_id then
@@ -240,7 +245,9 @@ end
 
 function WeaponSkins:get_secondary_weapon_list()
 	local mp = G and G.main_player
-	if not mp then return {} end
+	if not mp then
+		return {}
+	end
 	local kongfu_id
 	pcall(function()
 		if mp.get_sub_kongfu then
@@ -330,8 +337,12 @@ function WeaponSkins:apply(item_no_or_item)
 end
 
 function WeaponSkins:apply_dual(left_weapon, right_weapon)
-	if left_weapon then self:apply(left_weapon) end
-	if right_weapon then self:apply(right_weapon) end
+	if left_weapon then
+		self:apply(left_weapon)
+	end
+	if right_weapon then
+		self:apply(right_weapon)
+	end
 	return true
 end
 

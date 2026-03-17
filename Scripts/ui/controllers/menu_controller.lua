@@ -236,7 +236,9 @@ function MenuController.handle_suit_changer()
 		action = "suit_skins",
 		data_fn = "get_suit_list",
 		apply_fn = "enable",
-		id_fn = function(item) return item.suit_no end,
+		id_fn = function(item)
+			return item.suit_no
+		end,
 		title = "Suit Selector",
 		memory_key = "SUIT_SELECTOR",
 		empty_message = "No suits available",
@@ -245,7 +247,7 @@ function MenuController.handle_suit_changer()
 			if success then
 				_log("Applied suit (persistent): " .. (suit.name or suit.suit_no))
 			else
-				_log("Failed to apply suit: " .. (suit))
+				_log("Failed to apply suit: " .. suit)
 			end
 		end,
 	})
@@ -265,7 +267,11 @@ function MenuController.handle_dual_weapon_skin()
 		type = "dual",
 		action = "weapon_skins",
 		left = { data_fn = "get_primary_weapon_list", title = "Main Weapon Skins", display_fn = "get_display_name" },
-		right = { data_fn = "get_secondary_weapon_list", title = "Secondary Weapon Skins", display_fn = "get_display_name" },
+		right = {
+			data_fn = "get_secondary_weapon_list",
+			title = "Secondary Weapon Skins",
+			display_fn = "get_display_name",
+		},
 		apply_fn = "apply_dual",
 		title = "Dual Weapon Skin Selector",
 		memory_key = "DUAL_WEAPON_SELECTOR",
@@ -288,7 +294,11 @@ function MenuController.handle_dual_effect()
 		type = "dual",
 		action = "effects",
 		left = { data_fn = "get_primary_effect_list", title = "Main Weapon Effects", display_fn = "get_display_name" },
-		right = { data_fn = "get_secondary_effect_list", title = "Secondary Weapon Effects", display_fn = "get_display_name" },
+		right = {
+			data_fn = "get_secondary_effect_list",
+			title = "Secondary Weapon Effects",
+			display_fn = "get_display_name",
+		},
 		apply_fn = "apply_dual_items",
 		title = "Dual Effect Selector",
 		memory_key = "DUAL_EFFECT_SELECTOR",
@@ -312,7 +322,9 @@ function MenuController.handle_bow_skin()
 		action = "weapon_skins",
 		data_fn = "get_bow_list",
 		apply_fn = "apply",
-		id_fn = function(item) return item.item_no end,
+		id_fn = function(item)
+			return item.item_no
+		end,
 		title = "Bow Selector",
 		memory_key = "BOW_SELECTOR",
 		empty_message = "No bows available",
@@ -501,31 +513,8 @@ function MenuController.handle_search_module(path)
 	end
 end
 
-function MenuController.handle_dump_module(path)
-	local Dump = get_action("dump")
-	if not Dump or not Dump.dump_module then
-		_log("ERROR: Dump module not loaded")
-		return
-	end
-
-	local MenuConfig = Reg.get("MenuConfig")
-	local format = (MenuConfig and MenuConfig.DUMP_FORMAT) or "json"
-	pcall(Dump.dump_module, Dump, path, { format = format })
-end
-
-function MenuController.handle_dump_by_path(path_prefix)
-	local Dump = get_action("dump")
-	if not Dump or not Dump.dump_by_prefix then
-		return
-	end
-
-	local MenuConfig = Reg.get("MenuConfig")
-	local format = (MenuConfig and MenuConfig.DUMP_FORMAT) or "json"
-	pcall(Dump.dump_by_prefix, Dump, path_prefix, { format = format })
-end
-
-function MenuController.handle_dump_all_async(enabled, btn)
-	local Dump = get_action("dump")
+function MenuController.handle_dump_all_bytecodes(enabled, btn)
+	local Dump = get_action("dump_bytecode")
 	if not Dump then
 		return
 	end
@@ -535,49 +524,7 @@ function MenuController.handle_dump_all_async(enabled, btn)
 			return
 		end
 
-		local MenuConfig = Reg.get("MenuConfig")
-		local format = (MenuConfig and MenuConfig.DUMP_FORMAT) or "json"
-		local save_bytecode = (MenuConfig and MenuConfig.SAVE_BYTECODE) or false
-
 		pcall(Dump.dump_all_async, Dump, {
-			format = format,
-			save_bytecode = save_bytecode,
-			batch_size = 3,
-			delay_ms = 50,
-			on_progress = function(current, total, name)
-				if btn and btn.setTitleText then
-					pcall(btn.setTitleText, btn, string.format("● Dump Async: %d/%d", current, total))
-				end
-			end,
-			on_complete = function(count, errors)
-				if btn and btn.setTitleText then
-					pcall(btn.setTitleText, btn, "○ Dump All (Async)")
-				end
-				_log(string.format("Async complete: %d dumped, %d errors", count, errors))
-			end,
-		})
-	else
-		if Dump.stop_async_dump then
-			pcall(Dump.stop_async_dump, Dump)
-			if btn and btn.setTitleText then
-				pcall(btn.setTitleText, btn, "○ Dump All (Async)")
-			end
-		end
-	end
-end
-
-function MenuController.handle_dump_all_bytecodes(enabled, btn)
-	local Dump = get_action("dump")
-	if not Dump then
-		return
-	end
-
-	if enabled then
-		if not Dump.dump_all_bytecodes_async then
-			return
-		end
-
-		pcall(Dump.dump_all_bytecodes_async, Dump, {
 			batch_size = 5,
 			delay_ms = 50,
 			on_progress = function(current, total, name)
@@ -593,8 +540,8 @@ function MenuController.handle_dump_all_bytecodes(enabled, btn)
 			end,
 		})
 	else
-		if Dump.stop_bytecode_dump then
-			pcall(Dump.stop_bytecode_dump, Dump)
+		if Dump.stop_dump then
+			pcall(Dump.stop_dump, Dump)
 			if btn and btn.setTitleText then
 				pcall(btn.setTitleText, btn, "○ Dump All Bytecodes")
 			end
@@ -603,21 +550,21 @@ function MenuController.handle_dump_all_bytecodes(enabled, btn)
 end
 
 function MenuController.handle_dump_grey_table()
-	local Dump = get_action("dump")
+	local Dump = get_action("dump_static_data")
 	if Dump and Dump.dump_grey_table then
 		pcall(Dump.dump_grey_table, Dump)
 	end
 end
 
 function MenuController.handle_dump_dir_object_cache()
-	local Dump = get_action("dump")
+	local Dump = get_action("dump_static_data")
 	if Dump and Dump.dump_dir_object_cache then
 		pcall(Dump.dump_dir_object_cache, Dump)
 	end
 end
 
 function MenuController.handle_dump_dir_object_weak_cache()
-	local Dump = get_action("dump")
+	local Dump = get_action("dump_static_data")
 	if Dump and Dump.dump_dir_object_weak_cache then
 		pcall(Dump.dump_dir_object_weak_cache, Dump)
 	end

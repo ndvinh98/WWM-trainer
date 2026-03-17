@@ -298,6 +298,16 @@ mod:disable(); T.assert_false(mod:is_enabled())
 ```
 Check results: `Scripts/logs/test_results.txt`
 
+## Formatting
+
+Format Lua edits before verification:
+
+```powershell
+uv run stylua --syntax Lua54 <files...>
+```
+
+Prefer formatting only the files you changed.
+
 ## State testing caveat
 
 Persistent state survives across runs. Test with `assert_type(mod.state.key, "type")` instead of `assert_eq(mod.state.key, default_value)` for persistent keys.

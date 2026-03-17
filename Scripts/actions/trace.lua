@@ -63,6 +63,10 @@ function Trace:start(options)
 	return ok, err
 end
 
+function Trace:start_trace(options)
+	return self:start(options)
+end
+
 -- Stop tracing
 function Trace:stop()
 	self:log("Stopping trace...")
@@ -82,6 +86,10 @@ function Trace:stop()
 	return ok, msg
 end
 
+function Trace:stop_trace()
+	return self:stop()
+end
+
 -- Toggle tracing
 function Trace:toggle(enabled)
 	if enabled then
@@ -98,6 +106,10 @@ function Trace:is_enabled()
 		return core.is_enabled()
 	end
 	return false
+end
+
+function Trace:is_tracing()
+	return self:is_enabled()
 end
 
 -- Get output path
