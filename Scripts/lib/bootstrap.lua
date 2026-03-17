@@ -17,6 +17,7 @@ local _K_LIB = _PREFIX .. "_lib"
 local _K_MOD = _PREFIX .. "_modules"
 local _K_STATE = _PREFIX .. "_state"
 local _K_HOOKS = _PREFIX .. "_hooks"
+local _K_RELOAD_HOOKS = _PREFIX .. "_reload_hooks"
 
 -- ============================================================
 -- RELOAD DETECTION (must run before namespace init)
@@ -34,10 +35,17 @@ _G[_K_LIB] = _G[_K_LIB] or {}
 _G[_K_MOD] = _G[_K_MOD] or {}
 _G[_K_STATE] = _G[_K_STATE] or {}
 _G[_K_HOOKS] = _G[_K_HOOKS] or {}
+_G[_K_RELOAD_HOOKS] = _G[_K_RELOAD_HOOKS] or {}
 
 -- ── Namespace accessor (for core lib files that need raw table access) ──
 
-local _NS_KEYS = { lib = _K_LIB, modules = _K_MOD, state = _K_STATE, hooks = _K_HOOKS }
+local _NS_KEYS = {
+	lib = _K_LIB,
+	modules = _K_MOD,
+	state = _K_STATE,
+	hooks = _K_HOOKS,
+	reload_hooks = _K_RELOAD_HOOKS,
+}
 
 function Reg._ns(name)
 	return _G[_NS_KEYS[name]]
@@ -83,6 +91,7 @@ function Reg.reset_module(name)
 		pcall(mod.disable, mod)
 	end
 	_G[_K_STATE][name] = nil
+	_G[_K_RELOAD_HOOKS][name] = nil
 	-- Deactivate hooks for this module
 	local HookManager = _G[_K_LIB].HookManager
 	if HookManager then
@@ -104,6 +113,7 @@ function Reg.reset_all()
 	_G[_K_MOD] = {}
 	_G[_K_STATE] = {}
 	_G[_K_HOOKS] = {}
+	_G[_K_RELOAD_HOOKS] = {}
 end
 
 -- ── Reload support ──
@@ -113,6 +123,16 @@ function Reg.reload_all()
 	local function _log(msg)
 		if log then log.log("[Reg.reload] " .. msg) end
 	end
+
+	-- 0. Snapshot active hooks by module/hook name only.
+	local reload_hooks = {}
+	for _, entry in pairs(_G[_K_HOOKS]) do
+		if entry.active and entry.module and entry.hook_name then
+			reload_hooks[entry.module] = reload_hooks[entry.module] or {}
+			reload_hooks[entry.module][entry.hook_name] = true
+		end
+	end
+	_G[_K_RELOAD_HOOKS] = reload_hooks
 
 	-- 1. Log and deactivate all active hooks
 	local HM = _G[_K_LIB].HookManager

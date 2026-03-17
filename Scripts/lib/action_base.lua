@@ -158,6 +158,7 @@ function ActionBase:_restore_hooks()
 			hm.activate(self._name, hook_name, self)
 		end
 	end
+	hm.clear_previously_active(self._name)
 end
 
 -- Individual hook control

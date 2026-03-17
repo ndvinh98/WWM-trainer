@@ -57,14 +57,18 @@ assert_true(Reg._ns("state")["test.fake_module"], "state preserved after reload"
 assert_eq(Reg.state("test.fake_module").is_enabled, false, "is_enabled reset to false after reload")
 assert_eq(Reg.state("test.fake_module").some_setting, 42, "persistent setting preserved after reload")
 
--- ── Test: reload_all clears hooks ──
+-- ── Test: reload_all clears hooks but preserves restore intent ──
 
 -- Register a fake hook
 Reg._ns("hooks")["test.fake_hook"] = {
 	module = "test.fake_module",
 	hook_name = "fake_hook",
-	active = false,
+	active = true,
 	was_active_before_reload = true,
+	def = { stale = true },
+	original = function() end,
+	target = {},
+	target_key = "old_target",
 }
 
 assert_true(Reg._ns("hooks")["test.fake_hook"], "fake hook registered before reload")
@@ -72,6 +76,14 @@ assert_true(Reg._ns("hooks")["test.fake_hook"], "fake hook registered before rel
 Reg.reload_all()
 
 assert_false(Reg._ns("hooks")["test.fake_hook"], "fake hook cleared after reload")
+assert_true(Reg._ns("reload_hooks"), "reload hook snapshot namespace exists")
+assert_true(Reg._ns("reload_hooks")["test.fake_module"], "module restore intent preserved after reload")
+assert_true(Reg._ns("reload_hooks")["test.fake_module"]["fake_hook"], "hook restore intent preserved after reload")
+
+-- Old hook implementation details must not survive reload
+assert_false(Reg._ns("reload_hooks")["test.fake_module"].def, "stale hook def not preserved in reload snapshot")
+assert_false(Reg._ns("reload_hooks")["test.fake_module"].original, "stale original fn not preserved in reload snapshot")
+assert_false(Reg._ns("reload_hooks")["test.fake_module"].target, "stale target not preserved in reload snapshot")
 
 -- ── Test: ActionBase module survives reload cycle ──
 

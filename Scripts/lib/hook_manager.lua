@@ -18,6 +18,10 @@ local function _hooks_ns()
 	return _G.Reg._ns("hooks")
 end
 
+local function _reload_hooks_ns()
+	return _G.Reg._ns("reload_hooks")
+end
+
 local function _get_hooks()
 	Hooks = Hooks or (_G.Reg and _G.Reg.lib("Hooks"))
 	return Hooks
@@ -89,9 +93,10 @@ function HookManager.register(module_name, hook_name, hook_def)
 		return false, err
 	end
 
-	-- Preserve active state if re-registering (reload scenario)
+	-- Preserve active state if re-registering in-process, or restore intent after bootstrap reload.
 	local existing = _hooks_ns()[key]
-	local was_active = existing and existing.active
+	local restore_module = _reload_hooks_ns()[module_name]
+	local was_active = (existing and existing.active) or (restore_module and restore_module[hook_name]) or false
 
 	_hooks_ns()[key] = {
 		module = module_name,
@@ -328,6 +333,7 @@ function HookManager.clear_module(module_name)
 	for _, key in ipairs(to_remove) do
 		_hooks_ns()[key] = nil
 	end
+	_reload_hooks_ns()[module_name] = nil
 end
 
 function HookManager.get_previously_active(module_name)
@@ -338,6 +344,16 @@ function HookManager.get_previously_active(module_name)
 		end
 	end
 	return result
+end
+
+function HookManager.clear_previously_active(module_name)
+	local reload_hooks = _reload_hooks_ns()
+	reload_hooks[module_name] = nil
+	for _, entry in pairs(_hooks_ns()) do
+		if entry.module == module_name then
+			entry.was_active_before_reload = false
+		end
+	end
 end
 
 return HookManager
