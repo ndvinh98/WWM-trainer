@@ -17,8 +17,11 @@ local ItemSelector = {}
 
 -- Reference libs via Reg
 local Reg = _G.Reg
-local Constants = Reg.get("Constants")
-local Logger = Reg.get("Logger")
+local Constants = Reg.lib("Constants")
+local Logger = Reg.lib("Logger")
+local SELECTOR_STATE = Reg.state("ui.item_selector")
+SELECTOR_STATE.memory = SELECTOR_STATE.memory or {}
+SELECTOR_STATE.instances = SELECTOR_STATE.instances or {}
 
 local function _log(msg)
     if Logger then
@@ -26,12 +29,12 @@ local function _log(msg)
     end
 end
 
-local Theme = Reg.get("Theme")
+local Theme = Reg.lib("Theme")
 if not Theme then
     local ok; ok, Theme = pcall(dofile, Constants.SCRIPTS_ROOT .. "\\ui\\lib\\theme.lua")
     if not ok then Theme = nil end
 end
-local UIUtils = Reg.get("UIUtils")
+local UIUtils = Reg.lib("UIUtils")
 if not UIUtils then
     local ok; ok, UIUtils = pcall(dofile, Constants.SCRIPTS_ROOT .. "\\ui\\lib\\ui_utils.lua")
     if not ok then UIUtils = nil end
@@ -89,7 +92,7 @@ function ItemSelector.show(config)
 
     -- Selection memory: restore last selected item
     local memory_key = "LAST_SELECTED_" .. instance_name
-    local last_selected_id = Reg.get(memory_key)
+    local last_selected_id = SELECTOR_STATE.memory[memory_key]
 
     if last_selected_id then
         _log("Selection memory: Restoring last selected ID = " .. tostring(last_selected_id))
@@ -102,13 +105,13 @@ function ItemSelector.show(config)
     local DIALOG_H = config.dialog_height or Theme.DIMENSIONS.DIALOG_H
 
     -- Close existing if open (singleton pattern)
-    if Reg.get(instance_name) then
+    if SELECTOR_STATE.instances[instance_name] then
         pcall(
             function()
-                Reg.get(instance_name):removeFromParent()
+                SELECTOR_STATE.instances[instance_name]:removeFromParent()
             end
         )
-        Reg.del(instance_name)
+        SELECTOR_STATE.instances[instance_name] = nil
     end
 
     -- Get scene and size
@@ -133,7 +136,7 @@ function ItemSelector.show(config)
         return nil
     end
 
-    Reg.set(instance_name, overlay)
+    SELECTOR_STATE.instances[instance_name] = overlay
 
     -- Create dialog box (bottom-right position)
     local dialog = ccui.Layout:create()
@@ -272,7 +275,7 @@ function ItemSelector.show(config)
 
                     -- Save selection to memory
                     _log("Saving selection to memory: " .. memory_key .. " = " .. tostring(itemId))
-                    Reg.set(memory_key, itemId)
+                    SELECTOR_STATE.memory[memory_key] = itemId
 
                     local success = on_apply(item)
 
@@ -372,13 +375,13 @@ end
 function ItemSelector.close(instance_name)
     instance_name = instance_name or "VAR_ITEM_SELECTOR"
 
-    if Reg.get(instance_name) then
+    if SELECTOR_STATE.instances[instance_name] then
         pcall(
             function()
-                Reg.get(instance_name):removeFromParent()
+                SELECTOR_STATE.instances[instance_name]:removeFromParent()
             end
         )
-        Reg.del(instance_name)
+        SELECTOR_STATE.instances[instance_name] = nil
         _log("Closed " .. instance_name)
     end
 end

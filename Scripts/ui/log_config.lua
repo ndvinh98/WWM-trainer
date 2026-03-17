@@ -59,7 +59,7 @@ function LogConfig.log(component_name, message)
         return
     end
 
-    local Logger = Reg.get("Logger")
+    local Logger = Reg.lib("Logger")
     if Logger and Logger.log then
         Logger.log("[" .. component_name .. "] " .. message)
     end

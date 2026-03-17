@@ -3,8 +3,23 @@ local T = dofile("C:\\temp\\Where Winds Meet\\Scripts\\tests\\run_test.lua")
 T.reset()
 
 local Reg = _G.Reg
-local Constants = Reg.get("Constants")
+local Constants = Reg.lib("Constants")
 local _SCRIPTS_ROOT = Constants.SCRIPTS_ROOT
+
+local function assert_no_legacy_registry(path)
+	local f = io.open(path, "r")
+	if not f then
+		return
+	end
+
+	local content = f:read("*a")
+	f:close()
+
+	T.assert_false(content:find('Reg%.get%("Logger"%)') ~= nil, "no Logger flat alias in " .. path)
+	T.assert_false(content:find('Reg%.get%("Constants"%)') ~= nil, "no Constants flat alias in " .. path)
+	T.assert_false(content:find('Reg%.get%("Theme"%)') ~= nil, "no Theme flat alias in " .. path)
+	T.assert_false(content:find('Reg%.get%("UIUtils"%)') ~= nil, "no UIUtils flat alias in " .. path)
+end
 
 -- ── Button ──
 
@@ -37,6 +52,10 @@ T.run("button.lua has no Utils ref in source", function()
 	end
 end)
 
+T.run("button.lua uses structured registry lookups", function()
+	assert_no_legacy_registry(_SCRIPTS_ROOT .. "\\ui\\components\\button.lua")
+end)
+
 -- ── Dialog ──
 
 local ok_dlg, Dialog = pcall(dofile, _SCRIPTS_ROOT .. "\\ui\\components\\dialog.lua")
@@ -59,6 +78,10 @@ T.run("dialog.lua has no Utils ref in source", function()
 		f:close()
 		T.assert_false(content:find('Reg%.get%("Utils"%)') ~= nil, "no Utils in dialog.lua")
 	end
+end)
+
+T.run("dialog.lua uses structured registry lookups", function()
+	assert_no_legacy_registry(_SCRIPTS_ROOT .. "\\ui\\components\\dialog.lua")
 end)
 
 -- ── Input ──
@@ -89,6 +112,10 @@ T.run("input.lua has no Utils ref in source", function()
 		f:close()
 		T.assert_false(content:find('Reg%.get%("Utils"%)') ~= nil, "no Utils in input.lua")
 	end
+end)
+
+T.run("input.lua uses structured registry lookups", function()
+	assert_no_legacy_registry(_SCRIPTS_ROOT .. "\\ui\\components\\input.lua")
 end)
 
 T.summary()

@@ -4,7 +4,7 @@ local Constants = _G.Reg.lib("Constants")
 local DumpBytecode = ActionBase:extend("actions.dump_bytecode")
 
 local FSUtils = dofile(Constants.LIB_ROOT .. "\\fs_utils.lua")
-local STATE_NAME = "ASYNC_BYTECODE_DUMP_STATE"
+local STATE = _G.Reg.state("actions.dump_bytecode.async")
 
 function DumpBytecode:define_state()
 	return {
@@ -32,15 +32,15 @@ function DumpBytecode:_get_engine_searcher()
 end
 
 function DumpBytecode:_get_state()
-	return _G.Reg.get(STATE_NAME)
+	return STATE.job
 end
 
 function DumpBytecode:_set_state(state)
-	_G.Reg.set(STATE_NAME, state)
+	STATE.job = state
 end
 
 function DumpBytecode:_clear_state()
-	_G.Reg.del(STATE_NAME)
+	STATE.job = nil
 	self.state._is_running = false
 end
 

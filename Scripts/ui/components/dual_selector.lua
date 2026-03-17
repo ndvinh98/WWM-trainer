@@ -17,9 +17,12 @@ local DualSelector = {}
 
 -- Reference libs via Reg
 local Reg = _G.Reg
-local Constants = Reg.get("Constants")
-local Theme = Reg.get("Theme")
-local UIUtils = Reg.get("UIUtils")
+local Constants = Reg.lib("Constants")
+local Theme = Reg.lib("Theme")
+local UIUtils = Reg.lib("UIUtils")
+local DUAL_SELECTOR_STATE = Reg.state("ui.dual_selector")
+DUAL_SELECTOR_STATE.memory = DUAL_SELECTOR_STATE.memory or {}
+DUAL_SELECTOR_STATE.instances = DUAL_SELECTOR_STATE.instances or {}
 
 local ok_lc, LogConfig = pcall(dofile, Constants.SCRIPTS_ROOT .. "\\ui\\log_config.lua")
 if not ok_lc then LogConfig = nil end
@@ -72,8 +75,8 @@ function DualSelector.show(config)
     -- Selection memory keys
     local left_memory_key = "LAST_SELECTED_LEFT_" .. instance_name
     local right_memory_key = "LAST_SELECTED_RIGHT_" .. instance_name
-    local last_left_id = Reg.get(left_memory_key)
-    local last_right_id = Reg.get(right_memory_key)
+    local last_left_id = DUAL_SELECTOR_STATE.memory[left_memory_key]
+    local last_right_id = DUAL_SELECTOR_STATE.memory[right_memory_key]
 
     if last_left_id then
         _log("Left selection memory: " .. tostring(last_left_id))
@@ -83,12 +86,12 @@ function DualSelector.show(config)
     end
 
     -- Close existing instance
-    if Reg.has(instance_name) then
-        local existing = Reg.get(instance_name)
+    if DUAL_SELECTOR_STATE.instances[instance_name] then
+        local existing = DUAL_SELECTOR_STATE.instances[instance_name]
         if existing and existing.close then
             pcall(existing.close)
         end
-        Reg.set(instance_name, nil)
+        DUAL_SELECTOR_STATE.instances[instance_name] = nil
         _log("Closed existing instance")
     end
 
@@ -363,8 +366,8 @@ function DualSelector.show(config)
             _log("  → Saving left selection to memory...")
             _log("     Memory key: " .. left_memory_key)
             _log("     Item ID: " .. tostring(item_id) .. " (type: " .. type(item_id) .. ")")
-            Reg.set(left_memory_key, item_id)
-            local verify = Reg.get(left_memory_key)
+            DUAL_SELECTOR_STATE.memory[left_memory_key] = item_id
+            local verify = DUAL_SELECTOR_STATE.memory[left_memory_key]
             _log("     Verification read: " .. tostring(verify) .. " (type: " .. type(verify) .. ")")
             _log("     Match: " .. tostring(verify == item_id))
 
@@ -438,8 +441,8 @@ function DualSelector.show(config)
             _log("  → Saving right selection to memory...")
             _log("     Memory key: " .. right_memory_key)
             _log("     Item ID: " .. tostring(item_id) .. " (type: " .. type(item_id) .. ")")
-            Reg.set(right_memory_key, item_id)
-            local verify = Reg.get(right_memory_key)
+            DUAL_SELECTOR_STATE.memory[right_memory_key] = item_id
+            local verify = DUAL_SELECTOR_STATE.memory[right_memory_key]
             _log("     Verification read: " .. tostring(verify) .. " (type: " .. type(verify) .. ")")
             _log("     Match: " .. tostring(verify == item_id))
 
@@ -724,7 +727,7 @@ function DualSelector.show(config)
                 end
             end
         )
-        Reg.set(instance_name, nil)
+        DUAL_SELECTOR_STATE.instances[instance_name] = nil
         _log("✓ Cleanup complete")
     end
 
@@ -812,7 +815,7 @@ function DualSelector.show(config)
 
     -- Hook into menu close to auto-cleanup
     _log("Checking for menu instance to hook cleanup...")
-    local MenuInstance = Reg.get("VAR_MENU")
+    local MenuInstance = Reg.state("ui.menu").api
     if MenuInstance then
         _log("  Menu instance found: " .. tostring(MenuInstance))
         _log("  Menu.close function: " .. tostring(MenuInstance.close))
@@ -861,7 +864,7 @@ function DualSelector.show(config)
     }
 
     -- Register instance
-    Reg.set(instance_name, api)
+    DUAL_SELECTOR_STATE.instances[instance_name] = api
 
     return api
 end
@@ -872,11 +875,9 @@ end
 
 function DualSelector.close(instance_name)
     instance_name = instance_name or "VAR_DUAL_SELECTOR"
-    if Reg.has(instance_name) then
-        local instance = Reg.get(instance_name)
-        if instance and instance.close then
-            pcall(instance.close)
-        end
+    local instance = DUAL_SELECTOR_STATE.instances[instance_name]
+    if instance and instance.close then
+        pcall(instance.close)
     end
 end
 

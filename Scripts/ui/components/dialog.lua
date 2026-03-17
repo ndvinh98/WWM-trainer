@@ -12,8 +12,9 @@ local Dialog = {}
 
 -- Reference libs via Reg
 local Reg = _G.Reg
-local Constants = Reg.get("Constants")
-local Logger = Reg.get("Logger")
+local Constants = Reg.lib("Constants")
+local Logger = Reg.lib("Logger")
+local DIALOG_STATE = Reg.state("ui.dialog")
 
 local function _log(msg)
     if Logger then
@@ -89,7 +90,7 @@ function Dialog.create(config)
     end
 
     -- Store reference for singleton pattern
-    Reg.set("VAR_CURRENT_DIALOG", overlay)
+    DIALOG_STATE.current = overlay
 
     -- Calculate dialog position
     local dialog_x, dialog_y
@@ -150,7 +151,7 @@ function Dialog.create(config)
         end
 
         -- Remove from Reg
-        Reg.del("VAR_CURRENT_DIALOG")
+        DIALOG_STATE.current = nil
 
         -- Call user callback
         on_close()
@@ -299,13 +300,13 @@ end
     Close any open dialog
 ]]
 function Dialog.close_current()
-    if Reg.get("VAR_CURRENT_DIALOG") then
+    if DIALOG_STATE.current then
         pcall(
             function()
-                Reg.get("VAR_CURRENT_DIALOG"):removeFromParent()
+                DIALOG_STATE.current:removeFromParent()
             end
         )
-        Reg.del("VAR_CURRENT_DIALOG")
+        DIALOG_STATE.current = nil
         _log("Current dialog closed")
     end
 end

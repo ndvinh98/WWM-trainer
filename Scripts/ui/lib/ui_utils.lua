@@ -8,7 +8,7 @@ local UIUtils = {}
 
 -- Reference libs via Reg
 local Reg = _G.Reg
-local Logger = Reg.get("Logger")
+local Logger = Reg.lib("Logger")
 
 local function _log(msg)
     if Logger then Logger.log("[UIUtils] " .. msg) end
@@ -447,6 +447,10 @@ function UIUtils.create_text(text, font_size, color)
     textNode:setTextColor(cc.c3b(color.r, color.g, color.b))
 
     return textNode
+end
+
+if Reg then
+    Reg.set_lib("UIUtils", UIUtils)
 end
 
 return UIUtils

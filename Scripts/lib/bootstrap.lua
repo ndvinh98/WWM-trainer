@@ -283,70 +283,13 @@ Reg.set_lib("HookManager", HookManager)
 local ActionBase = dofile(_ROOT .. "\\lib\\action_base.lua")
 Reg.set_lib("ActionBase", ActionBase)
 
+-- Clear removed legacy shim entries that may survive across reloads.
+Reg.set_lib("Utils", nil)
+Reg.del("Utils")
+
 if _is_reload then
 	Reg.restore_reloaded_modules()
 end
-
--- ============================================================
--- LEGACY UTILS SHIM (for UI components not yet migrated)
--- ============================================================
-
-local Utils = {}
-
-function Utils.safe_import(module_path)
-	if type(module_path) == "table" then
-		return module_path
-	end
-	local ok, mod = pcall(portable.safe_import, module_path)
-	if ok and mod then
-		return mod
-	end
-	return nil
-end
-
-function Utils.safe_dofile(path, label)
-	local ok, result = pcall(dofile, path)
-	if ok then
-		return result
-	end
-	Logger.log("[Utils.shim] safe_dofile failed: " .. tostring(label) .. " - " .. tostring(result))
-	return nil
-end
-
-function Utils.safe_call(label, fn, ...)
-	local ok, result = pcall(fn, ...)
-	if ok then
-		return result
-	end
-	Logger.log("[Utils.shim] safe_call failed: " .. tostring(label) .. " - " .. tostring(result))
-	return nil, result
-end
-
-function Utils.get_main_player()
-	return G and G.main_player or nil
-end
-
-function Utils.dump_value(val, options)
-	return Serialize.dump_value(val, options)
-end
-
-function Utils.create_empty_proxy()
-	return Cocos.create_empty_proxy()
-end
-
-function Utils.delay_call(delay, fn)
-	return Cocos.delay_call(delay, fn)
-end
-
-function Utils.get_running_scene()
-	return Cocos.get_running_scene()
-end
-
--- table.unpack alias for compatibility
-Utils.unpack = table.unpack
-
-Reg.set_lib("Utils", Utils)
-Reg.set("Utils", Utils) -- legacy
 
 -- ============================================================
 -- REDIRECT PRINT TO LOGGER

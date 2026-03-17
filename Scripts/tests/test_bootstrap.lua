@@ -52,6 +52,10 @@ T.run("Reg.lib returns Cocos", function()
 	T.assert_not_nil(Reg.lib("Cocos"), "Cocos")
 end)
 
+T.run("bootstrap does not expose legacy Utils shim", function()
+	T.assert_nil(Reg.lib("Utils"), "Utils shim removed")
+end)
+
 T.run("Reg.lib is consistent", function()
 	local logger1 = Reg.lib("Logger")
 	local logger2 = Reg.lib("Logger")

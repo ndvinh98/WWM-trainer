@@ -2,7 +2,7 @@ local T = dofile("C:\\temp\\Where Winds Meet\\Scripts\\tests\\run_test.lua")
 T.reset()
 
 local Reg = _G.Reg
-local Constants = Reg.get("Constants")
+local Constants = Reg.lib("Constants")
 local dump = Reg.module("actions.dump_bytecode")
 
 T.run("module registered", function()
@@ -49,6 +49,12 @@ end)
 
 T.run("get_progress returns nil initially", function()
 	T.assert_nil(dump:get_progress(), "no progress before start")
+end)
+
+T.run("dump_bytecode uses structured state namespace", function()
+	local state = Reg.state("actions.dump_bytecode.async")
+	T.assert_type(state, "table", "async state table")
+	T.assert_eq(dump:_get_state(), state.job, "module reads namespaced state")
 end)
 
 T.summary()

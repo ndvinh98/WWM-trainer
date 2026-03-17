@@ -22,21 +22,12 @@ local Logger = Reg.lib("Logger")
 local Constants = Reg.lib("Constants")
 local Serialize = Reg.lib("Serialize")
 local Cocos = Reg.lib("Cocos")
-
-local STATE_NAME = "ACB_STATE"
-if not Reg.has(STATE_NAME) then
-	Reg.set(STATE_NAME, {
-		is_enabled = false,
-		logging = false, -- toggle detailed intercept logging
-		intercepted_logs = {}, -- captured SA-log payloads for inspection
-		originals = {}, -- {tbl, key, val} snapshots for full restore on reload
-	})
-end
-local _state = Reg.get(STATE_NAME)
--- Guard for state created before originals field existed
-if not _state.originals then
-	_state.originals = {}
-end
+local _state = Reg.state("lib.anticheat_bypass")
+_state.is_enabled = _state.is_enabled or false
+_state.logging = _state.logging or false
+_state.intercepted_logs = _state.intercepted_logs or {}
+_state.originals = _state.originals or {}
+_state.cached_modules = _state.cached_modules or {}
 
 local function _log(msg)
 	if _state.logging then
@@ -75,13 +66,13 @@ end
 -- MODULE REGISTRATION
 -- ============================================================
 local function register_orig_module(module_name)
-	if Reg.get(module_name) then
-		return Reg.get(module_name)
+	if _state.cached_modules[module_name] then
+		return _state.cached_modules[module_name]
 	end
 
 	local module = portable.safe_import(module_name)
 	if module then
-		Reg.set(module_name, module)
+		_state.cached_modules[module_name] = module
 	else
 		_log("Failed to import module '" .. module_name .. "'")
 	end
@@ -126,7 +117,7 @@ end
 -- ============================================================
 local function patch_modules(specs)
 	for _, spec in ipairs(specs) do
-		local target_module = Reg.get(spec.path) or register_orig_module(spec.path)
+		local target_module = _state.cached_modules[spec.path] or register_orig_module(spec.path)
 		if not target_module then
 			_log("Module not found: " .. spec.path)
 			goto continue
@@ -282,7 +273,7 @@ end
 -- never activates the heavier anticheat monitors.
 -- ============================================================
 local function patch_space_inspection_gates()
-	local space_mod = Reg.get("hexm.common.space_common") or register_orig_module("hexm.common.space_common")
+	local space_mod = _state.cached_modules["hexm.common.space_common"] or register_orig_module("hexm.common.space_common")
 	if not space_mod then
 		_log("space_common not found, skipping space gate patches")
 		return
@@ -393,7 +384,7 @@ end
 -- ENGINE INSPECTION INIT PATCH
 -- ============================================================
 local function patch_engine_inspection()
-	local engine_mod = Reg.get("hexm.client.engine.engine") or register_orig_module("hexm.client.engine.engine")
+	local engine_mod = _state.cached_modules["hexm.client.engine.engine"] or register_orig_module("hexm.client.engine.engine")
 	if not engine_mod then
 		_log("Engine module not found, skipping engine patches")
 		return

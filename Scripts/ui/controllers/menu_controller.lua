@@ -7,9 +7,10 @@
 local MenuController = {}
 
 local Reg = _G.Reg
-local Constants = Reg.lib("Constants") or Reg.get("Constants")
-local Logger = Reg.lib("Logger") or Reg.get("Logger")
-local Serialize = _G.Reg.lib("Serialize")
+local Constants = Reg.lib("Constants")
+local Logger = Reg.lib("Logger")
+local Serialize = Reg.lib("Serialize")
+local MENU_STATE = Reg.state("ui.menu")
 local function _log(msg)
 	if Logger then
 		Logger.log("[MenuController] " .. msg)
@@ -499,7 +500,7 @@ function MenuController.handle_gm_panel(enabled)
 end
 
 function MenuController.handle_save_bytecode(enabled)
-	local MenuConfig = Reg.get("MenuConfig")
+	local MenuConfig = MENU_STATE.config
 	if MenuConfig then
 		MenuConfig.SAVE_BYTECODE = enabled and true or false
 		_log("Save Bytecode: " .. (MenuConfig.SAVE_BYTECODE and "ON" or "OFF"))

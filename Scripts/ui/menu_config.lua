@@ -19,8 +19,8 @@ local MenuConfig = {}
 -- ============================================================
 
 local Reg = _G.Reg
-local Logger = Reg.get("Logger")
-local Constants = Reg.get("Constants")
+local Logger = Reg.lib("Logger")
+local Constants = Reg.lib("Constants")
 local _SCRIPTS_ROOT = Constants.SCRIPTS_ROOT
 
 local function _log(msg)

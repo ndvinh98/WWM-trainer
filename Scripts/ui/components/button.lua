@@ -10,7 +10,9 @@ local Button = {}
 
 -- Reference libs via Reg (loaded once by bootstrap)
 local Reg = _G.Reg
-local Logger = Reg.get("Logger")
+local Logger = Reg.lib("Logger")
+local BUTTON_STATE = Reg.state("ui.button")
+BUTTON_STATE.states = BUTTON_STATE.states or {}
 
 local function _log(msg)
     if Logger then Logger.log("[Button] " .. msg) end
@@ -99,8 +101,7 @@ function Button.create(parent, config)
 
             -- Save state globally if id provided
             if id then
-                if not Reg.has("VAR_BUTTON_STATE") then Reg.set("VAR_BUTTON_STATE", {}) end
-                Reg.get("VAR_BUTTON_STATE")[id] = state
+                BUTTON_STATE.states[id] = state
             end
 
             -- Call appropriate action

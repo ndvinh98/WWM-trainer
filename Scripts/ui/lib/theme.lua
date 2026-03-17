@@ -4,6 +4,7 @@
 -- Single source of truth for all UI styling (colors, dimensions, z-orders)
 -- Prerequisites: Bootstrap must be loaded first
 
+local Reg = _G.Reg
 local Theme = {}
 
 -- ============================================================
@@ -205,6 +206,10 @@ function Theme.apply_title_color(node, color)
             node:setTitleColor(Theme.to_c3b(color))
         end
     )
+end
+
+if Reg then
+    Reg.set_lib("Theme", Theme)
 end
 
 return Theme

@@ -286,7 +286,7 @@ end
 --- @param prefix string - Module prefix (e.g., "Combat", "Buffs")
 --- @return function - Log function that accepts a message string
 function Utils.create_log(prefix)
-	local Logger = Reg and Reg.get("Logger")
+	local Logger = Reg and Reg.lib("Logger")
 	return function(msg)
 		if Logger then
 			Logger.log("[" .. prefix .. "] " .. msg)

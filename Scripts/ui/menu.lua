@@ -17,16 +17,34 @@ local Menu = {}
 -- ============================================================
 
 local Reg = _G.Reg
-local Constants = Reg.get("Constants")
-local Logger = Reg.get("Logger")
-local Theme = Reg.get("Theme")
-local UIUtils = Reg.get("UIUtils")
+local Constants = Reg.lib("Constants")
+local Logger = Reg.lib("Logger")
+local Theme = Reg.lib("Theme")
+local UIUtils = Reg.lib("UIUtils")
+local MENU_STATE = Reg.state("ui.menu")
+MENU_STATE.item_states = MENU_STATE.item_states or {}
 
 local _SCRIPTS_ROOT = Constants.SCRIPTS_ROOT
 
+if not Theme then
+	local ok_theme
+	ok_theme, Theme = pcall(dofile, _SCRIPTS_ROOT .. "\\ui\\lib\\theme.lua")
+	if not ok_theme then
+		Theme = nil
+	end
+end
+
+if not UIUtils then
+	local ok_uiutils
+	ok_uiutils, UIUtils = pcall(dofile, _SCRIPTS_ROOT .. "\\ui\\lib\\ui_utils.lua")
+	if not ok_uiutils then
+		UIUtils = nil
+	end
+end
+
 local ok_mc, MenuConfig = pcall(dofile, _SCRIPTS_ROOT .. "\\ui\\menu_config.lua")
 if not ok_mc then MenuConfig = { TABS = {} } end
-Reg.set("MenuConfig", MenuConfig)
+MENU_STATE.config = MenuConfig
 
 local ok_ui, UIInput = pcall(dofile, _SCRIPTS_ROOT .. "\\ui\\components\\input.lua")
 if not ok_ui then UIInput = nil end
@@ -76,19 +94,12 @@ Menu.state = {
 	cleanup_drag = nil,
 }
 
--- Persist states via Reg
-local MENU_STATE_NAME = "VAR_MENU_STATE"
-local MENU_TAB_NAME = "VAR_MENU_CURRENT_TAB"
-if not Reg.has(MENU_STATE_NAME) then
-	Reg.set(MENU_STATE_NAME, {})
-end
-
 -- ============================================================
 -- HELPER FUNCTIONS
 -- ============================================================
 
 function Menu.get_state(id)
-	local state = Reg.get(MENU_STATE_NAME)
+	local state = MENU_STATE.item_states
 	if state[id] ~= nil then
 		return state[id]
 	end
@@ -96,7 +107,7 @@ function Menu.get_state(id)
 end
 
 function Menu.set_state(id, value)
-	local state = Reg.get(MENU_STATE_NAME)
+	local state = MENU_STATE.item_states
 	state[id] = value
 	Menu.state.item_states[id] = value
 end
@@ -635,7 +646,7 @@ function Menu.create(scene)
 		tabBtn:addTouchEventListener(function(sender, eventType)
 			if eventType == 2 then
 				Menu.state.current_tab = i
-				Reg.set(MENU_TAB_NAME, i)
+				MENU_STATE.current_tab = i
 
 				for j, tb in ipairs(tabBtns) do
 					local isActive = (j == i)
@@ -807,13 +818,12 @@ function Menu.create(scene)
 
 	-- Initialize tab (restore saved or default to 1)
 	local init_tab = 1
-	if Reg.has(MENU_TAB_NAME) then
-		local saved = Reg.get(MENU_TAB_NAME)
-		if type(saved) == "number" and saved >= 1 and saved <= #Menu.TABS then
-			init_tab = saved
-		end
+	local saved = MENU_STATE.current_tab
+	if type(saved) == "number" and saved >= 1 and saved <= #Menu.TABS then
+		init_tab = saved
 	end
 	Menu.state.current_tab = init_tab
+	MENU_STATE.current_tab = init_tab
 	_log("Initializing tab " .. init_tab .. "...")
 	pcall(function()
 		tabBtns[init_tab]:setTitleColor(Theme.to_c3b(Theme.COLORS.TAB_ACTIVE))
@@ -948,6 +958,7 @@ end
 -- ============================================================
 
 function Menu.show(scene)
+	MENU_STATE.api = Menu
 	if Menu.state.panel then
 		pcall(function()
 			Menu.state.panel:setVisible(true)
@@ -958,6 +969,7 @@ function Menu.show(scene)
 end
 
 function Menu.hide()
+	MENU_STATE.api = nil
 	-- Cleanup function
 	if Menu.state.cleanup_drag then
 		pcall(Menu.state.cleanup_drag)

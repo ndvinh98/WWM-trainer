@@ -12,9 +12,10 @@
 ]]
 -- Reference libs via Reg (loaded once by bootstrap)
 local Reg = _G.Reg
-local Constants = Reg.get("Constants")
-local Logger = Reg.get("Logger")
+local Constants = Reg.lib("Constants")
+local Logger = Reg.lib("Logger")
 local Serialize = Reg.lib("Serialize")
+local TRACE_STATE = Reg.state("lib.trace_core")
 
 local TraceCore = {}
 
@@ -769,7 +770,6 @@ function TraceCore.get_format()
 	return OUTPUT_FORMAT
 end
 
--- Register global stop function for backwards compatibility
-Reg.set("stop_trace_hook", TraceCore.stop)
+TRACE_STATE.stop = TraceCore.stop
 
 return TraceCore

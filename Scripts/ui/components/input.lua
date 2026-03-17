@@ -12,8 +12,10 @@ local Input = {}
 
 -- Reference libs via Reg
 local Reg = _G.Reg
-local Constants = Reg.get("Constants")
-local Logger = Reg.get("Logger")
+local Constants = Reg.lib("Constants")
+local Logger = Reg.lib("Logger")
+local INPUT_STATE = Reg.state("ui.input")
+INPUT_STATE.history = INPUT_STATE.history or {}
 
 -- Load Theme (loaded by bootstrap or dofile)
 local _ok_theme, Theme = pcall(dofile, Constants.SCRIPTS_ROOT .. "\\ui\\lib\\theme.lua")
@@ -116,7 +118,7 @@ function Input.show(config)
     local history_key = config.history_key or title
     local save_history = config.save_history ~= false
 
-    local history_value = save_history and Reg.get("INPUT_HISTORY_" .. history_key) or nil
+    local history_value = save_history and INPUT_STATE.history[history_key] or nil
     local default_value = history_value or config.default_value or ""
 
     local placeholder = config.placeholder or Input.DEFAULTS.placeholder
@@ -129,7 +131,7 @@ function Input.show(config)
     -- Wrap on_submit to save to history
     local on_submit = function(value)
         if save_history and value and value ~= "" then
-            Reg.set("INPUT_HISTORY_" .. history_key, value)
+            INPUT_STATE.history[history_key] = value
             _log("Saved input history: " .. history_key .. " = " .. value)
         end
         on_submit_original(value)
@@ -296,7 +298,7 @@ function Input.show_persistent(config)
     local history_key = config.history_key or title
     local save_history = config.save_history ~= false
 
-    local history_value = save_history and Reg.get("INPUT_HISTORY_" .. history_key) or nil
+    local history_value = save_history and INPUT_STATE.history[history_key] or nil
     local default_value = history_value or config.default_value or ""
 
     local helper_text = config.helper_text or ""
@@ -310,7 +312,7 @@ function Input.show_persistent(config)
     -- Wrap on_submit to save to history
     local on_submit = function(value, status_callback)
         if save_history and value and value ~= "" then
-            Reg.set("INPUT_HISTORY_" .. history_key, value)
+            INPUT_STATE.history[history_key] = value
             _log("Saved input history: " .. history_key .. " = " .. value)
         end
         on_submit_original(value, status_callback)
