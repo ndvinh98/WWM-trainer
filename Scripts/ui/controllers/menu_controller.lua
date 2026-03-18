@@ -437,12 +437,12 @@ function MenuController.handle_trace_call(enabled)
 	end
 
 	if enabled then
-		if Trace.start then
-			pcall(Trace.start, Trace)
+		if Trace.start_trace then
+			pcall(Trace.start_trace, Trace)
 		end
 	else
-		if Trace.stop then
-			pcall(Trace.stop, Trace)
+		if Trace.stop_trace then
+			pcall(Trace.stop_trace, Trace)
 		end
 	end
 end
