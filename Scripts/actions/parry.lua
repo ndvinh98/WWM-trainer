@@ -101,9 +101,10 @@ function Parry:_intercept_listenable(args)
 		))
 	end
 
-	if not ins_str:find("Npc") and not ins_str:find("CombativeAnimal") then return end
-
 	if ev_name == "E_PRE_HIT" then
+		if entity.id == G.main_player.id then
+			return
+		end
 		local difficulty = G.main_player.skill_ctrl:get_difficulty()
 		local skill_id = entity.skill_driver.cur_skill.skill_id
 		local skill_d = G.datam.skills:get(tonumber(skill_id))
@@ -117,6 +118,8 @@ function Parry:_intercept_listenable(args)
 			G.main_player:use_skill(dash_skill_no)
 		end
 	end
+
+	if not ins_str:find("Npc") and not ins_str:find("CombativeAnimal") then return end
 
 	if self.state.useful_npc_events[tostring(ev_name)] then
 		self:log("NPC EVENT " .. ev_name .. " code=" .. tostring(event))

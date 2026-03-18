@@ -416,17 +416,15 @@ end
 -- ============================================================
 
 function MenuController.handle_anticheat_bypass(enabled, btn)
-	-- anticheat_bypass is NOT an ActionBase module — it's loaded via dofile
-	local path = Constants.SCRIPTS_ROOT .. "\\lib\\anticheat_bypass.lua"
-	local ok, AntiCheatBypass = pcall(dofile, path)
-	if not ok or not AntiCheatBypass then
+	local AntiCheatBypass = get_action("anticheat_bypass")
+	if not AntiCheatBypass then
 		return
 	end
 
 	if enabled then
-		AntiCheatBypass.enable()
+		pcall(AntiCheatBypass.enable, AntiCheatBypass)
 	else
-		AntiCheatBypass.disable()
+		pcall(AntiCheatBypass.disable, AntiCheatBypass)
 	end
 end
 
