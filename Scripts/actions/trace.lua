@@ -93,17 +93,16 @@ function Trace:define_state()
 		},
 		transient = {
 			is_tracing = false,
-			index_file = nil,
 			call_sequence = 0,
 			file_count = 0,
 			current_trace = {},
 			trace_count = 0,
 			root_func_name = nil,
 			root_src = nil,
-			created_folders = {},
 			this_src = nil,
 			in_hook = false,
 			session_id = nil,
+			completed_traces = {}, -- buffered traces, flushed on stop()
 		},
 	}
 end
@@ -225,27 +224,6 @@ function Trace:_ensure_folder(src)
 		s.created_folders[full_path] = true
 	end
 	return full_path
-end
-
-function Trace:_write_index(filepath, func_name, src)
-	local s = self.state
-	s.call_sequence = s.call_sequence + 1
-	if s.index_file then
-		local timestamp = os.date("%H:%M:%S")
-		local ms = math.floor((os.clock() % 1) * 1000)
-		s.index_file:write(
-			string.format(
-				"%05d | %s.%03d | %s | %s | %s\n",
-				s.call_sequence,
-				timestamp,
-				ms,
-				func_name or "?",
-				src or "?",
-				filepath
-			)
-		)
-		s.index_file:flush()
-	end
 end
 
 function Trace:_add_line(line)
@@ -471,42 +449,57 @@ function Trace:_build_slices(lines)
 end
 
 -- ============================================================
--- FILE I/O
+-- IN-MEMORY BUFFERING (zero I/O during tracing)
 -- ============================================================
 
-function Trace:_save_trace_to_file()
+--- Buffer completed trace into memory. Called from the debug hook
+--- on root-level return. No file I/O happens here.
+function Trace:_buffer_current_trace()
 	local s = self.state
 	if s.trace_count == 0 then
 		return
 	end
 
+	s.call_sequence = s.call_sequence + 1
 	s.file_count = s.file_count + 1
 
-	local folder_path = self:_ensure_folder(s.root_src)
-	local src_name = self:_extract_filename(s.root_src)
-	local func_name = self:_sanitize_name(s.root_func_name)
-	local timestamp = self:_get_timestamp()
-	local base_filename = string.format("%s%s_%s_%s", folder_path, src_name, func_name, timestamp)
+	-- Snapshot the trace data into the buffer
+	s.completed_traces[#s.completed_traces + 1] = {
+		lines = s.current_trace,
+		root_func_name = s.root_func_name,
+		root_src = s.root_src,
+		seq = s.call_sequence,
+		timestamp = self:_get_timestamp(),
+	}
 
-	local actual_filename
-	if s.output_format == "json" then
-		actual_filename = base_filename .. ".json"
-	else
-		actual_filename = base_filename .. "_compact.log"
-	end
+	-- Reset for next trace (allocate new table, don't clear)
+	s.current_trace = {}
+	s.trace_count = 0
+	s.root_func_name = nil
+	s.root_src = nil
+end
 
-	local relative_path = actual_filename:sub(#BASE_PATH + 1)
-	self:_write_index(relative_path, s.root_func_name, s.root_src)
+-- ============================================================
+-- FILE I/O (called only from stop())
+-- ============================================================
+
+--- Write a single buffered trace record to disk.
+function Trace:_write_trace_record(record)
+	local s = self.state
+	local folder_path = self:_ensure_folder(record.root_src)
+	local src_name = self:_extract_filename(record.root_src)
+	local func_name = self:_sanitize_name(record.root_func_name)
+	local base_filename = string.format("%s%s_%s_%s", folder_path, src_name, func_name, record.timestamp)
 
 	-- Save raw logs if enabled
 	if SAVE_ACTUAL_LOGS then
 		local f = io.open(base_filename .. ".log", "wb")
 		if f then
-			f:write("-- Sequence: " .. s.call_sequence .. "\n")
-			f:write("-- Root: " .. (s.root_func_name or "unknown") .. "\n")
-			f:write("-- Source: " .. (s.root_src or "unknown") .. "\n")
+			f:write("-- Sequence: " .. record.seq .. "\n")
+			f:write("-- Root: " .. (record.root_func_name or "unknown") .. "\n")
+			f:write("-- Source: " .. (record.root_src or "unknown") .. "\n")
 			f:write("-- Time: " .. os.date("%Y-%m-%d %H:%M:%S") .. "\n\n")
-			f:write(table.concat(s.current_trace, "\n"))
+			f:write(table.concat(record.lines, "\n"))
 			f:write("\n")
 			f:close()
 		end
@@ -517,45 +510,116 @@ function Trace:_save_trace_to_file()
 		local json_path = base_filename .. ".json"
 		local jf = io.open(json_path, "wb")
 		if jf then
-			local json_output = self:_build_json_output(s.current_trace, s.root_func_name, s.root_src, s.call_sequence)
+			local json_output =
+				self:_build_json_output(record.lines, record.root_func_name, record.root_src, record.seq)
 			jf:write(json_output)
 			jf:write("\n")
 			jf:close()
 		end
+		return base_filename .. ".json"
 	else
 		local compact_path = base_filename .. "_compact.log"
 		local cf = io.open(compact_path, "wb")
 		if cf then
 			cf:write("-- Compact call tree (CALL-only)\n")
-			cf:write("-- Root: " .. (s.root_func_name or "unknown") .. "\n")
-			cf:write("-- Source: " .. (s.root_src or "unknown") .. "\n")
+			cf:write("-- Root: " .. (record.root_func_name or "unknown") .. "\n")
+			cf:write("-- Source: " .. (record.root_src or "unknown") .. "\n")
 			cf:write("-- Time: " .. os.date("%Y-%m-%d %H:%M:%S") .. "\n\n")
 			cf:write(
-				string.format("[ROOT] %s : %s()\n", self:_basename(s.root_src or "?"), s.root_func_name or "anonymous")
+				string.format(
+					"[ROOT] %s : %s()\n",
+					self:_basename(record.root_src or "?"),
+					record.root_func_name or "anonymous"
+				)
 			)
-			cf:write(table.concat(self:_build_compact_tree(s.current_trace), "\n"))
+			cf:write(table.concat(self:_build_compact_tree(record.lines), "\n"))
 			cf:write("\n")
 			cf:close()
 		end
+		return base_filename .. "_compact.log"
+	end
+end
+
+--- Write anchor slices for a buffered trace record.
+function Trace:_write_trace_slices(record)
+	local slices = self:_build_slices(record.lines)
+	if not slices then
+		return
+	end
+	local folder_path = self:_ensure_folder(record.root_src)
+	local src_name = self:_extract_filename(record.root_src)
+	local func_name = self:_sanitize_name(record.root_func_name)
+	local base_filename = string.format("%s%s_%s_%s", folder_path, src_name, func_name, record.timestamp)
+	local slice_path = base_filename .. "_slice.log"
+	local sf = io.open(slice_path, "wb")
+	if sf then
+		sf:write("-- Anchor slices around e_parry / e_be_parry / e_pre_damage\n")
+		sf:write("-- Window: " .. tostring(SLICE_WINDOW) .. " lines before/after\n\n")
+		sf:write(table.concat(slices, "\n"))
+		sf:write("\n")
+		sf:close()
+	end
+end
+
+--- Flush ALL buffered traces to disk. Called once from stop().
+function Trace:_flush_all_to_disk()
+	local s = self.state
+	local traces = s.completed_traces
+	if #traces == 0 then
+		return
 	end
 
-	local slices = self:_build_slices(s.current_trace)
-	if slices then
-		local slice_path = base_filename .. "_slice.log"
-		local sf = io.open(slice_path, "wb")
-		if sf then
-			sf:write("-- Anchor slices around e_parry / e_be_parry / e_pre_damage\n")
-			sf:write("-- Window: " .. tostring(SLICE_WINDOW) .. " lines before/after\n\n")
-			sf:write(table.concat(slices, "\n"))
-			sf:write("\n")
-			sf:close()
+	self:log(string.format("Flushing %d traces to disk...", #traces))
+
+	-- Ensure base folder
+	os.execute('mkdir "' .. BASE_PATH .. '" 2>nul')
+	s.created_folders = {}
+
+	-- Write index file
+	local index_filename = BASE_PATH .. "index_session_" .. (s.session_id or "unknown") .. ".log"
+	local index_file = io.open(index_filename, "wb")
+	if index_file then
+		index_file:write("-- SESSION STARTED at " .. os.date("%Y-%m-%d %H:%M:%S") .. " --\n")
+		index_file:write("-- Session ID: " .. (s.session_id or "unknown") .. " --\n")
+		index_file:write("-- Format: " .. s.output_format .. " --\n\n")
+	end
+
+	-- Write each trace record
+	for i, record in ipairs(traces) do
+		local ok, result = pcall(function()
+			local filepath = self:_write_trace_record(record)
+			self:_write_trace_slices(record)
+
+			-- Write index entry
+			if index_file and filepath then
+				local relative_path = filepath:sub(#BASE_PATH + 1)
+				index_file:write(
+					string.format(
+						"%05d | %s | %s | %s\n",
+						record.seq,
+						record.root_func_name or "?",
+						record.root_src or "?",
+						relative_path
+					)
+				)
+			end
+		end)
+		if not ok then
+			self:log("[Trace] Error writing trace " .. i .. ": " .. tostring(result))
 		end
 	end
 
-	s.current_trace = {}
-	s.trace_count = 0
-	s.root_func_name = nil
-	s.root_src = nil
+	-- Close index
+	if index_file then
+		index_file:write("\n-- SESSION ENDED at " .. os.date("%Y-%m-%d %H:%M:%S") .. " --\n")
+		index_file:write("-- Total calls: " .. s.call_sequence .. ", Files: " .. s.file_count .. " --\n\n")
+		index_file:close()
+	end
+
+	self:log(string.format("Flush complete. %d files written.", s.file_count))
+
+	-- Clear buffer
+	s.completed_traces = {}
 end
 
 -- ============================================================
@@ -640,7 +704,7 @@ function Trace:_create_hook()
 		if event == "return" then
 			trace_self:_add_line(string.format("%sRET  %s (%s:%d)", prefix, func_name, src, linedef))
 			if depth == 0 then
-				trace_self:_save_trace_to_file()
+				trace_self:_buffer_current_trace()
 			end
 			s.in_hook = false
 			return
@@ -711,28 +775,17 @@ function Trace:start(options)
 	-- Generate new session ID
 	s.session_id = self:_generate_session_id()
 
-	-- Ensure base traces folder exists
-	os.execute('mkdir "' .. BASE_PATH .. '" 2>nul')
-
-	-- Open session-specific index file
-	local index_filename = BASE_PATH .. "index_session_" .. s.session_id .. ".log"
-	s.index_file = io.open(index_filename, "wb")
-	if s.index_file then
-		s.index_file:write("-- SESSION STARTED at " .. os.date("%Y-%m-%d %H:%M:%S") .. " --\n")
-		s.index_file:write("-- Session ID: " .. s.session_id .. " --\n")
-		s.index_file:write("-- Format: " .. s.output_format .. " --\n\n")
-		s.index_file:flush()
-	end
-
+	-- Reset counters and buffer (no I/O here)
 	s.call_sequence = 0
 	s.file_count = 0
+	s.completed_traces = {}
 	s.created_folders = {}
 
 	-- Set hook
 	dbg.sethook(self:_create_hook(), "cr")
 	s.is_tracing = true
 
-	self:log("Started - session: " .. s.session_id .. " output: " .. BASE_PATH)
+	self:log("Started - session: " .. s.session_id .. " (buffered, flush on stop)")
 	return true, "Session: " .. s.session_id
 end
 
@@ -745,25 +798,20 @@ function Trace:stop()
 		return true, "Not enabled"
 	end
 
-	-- Remove hook
+	-- Remove hook FIRST — no more callbacks after this
 	if dbg and dbg.sethook then
 		dbg.sethook(nil)
 	end
 
-	-- Save any pending trace
+	-- Buffer any pending trace
 	if s.trace_count > 0 then
-		self:_save_trace_to_file()
-	end
-
-	-- Close index file
-	if s.index_file then
-		s.index_file:write("\n-- SESSION ENDED at " .. os.date("%Y-%m-%d %H:%M:%S") .. " --\n")
-		s.index_file:write("-- Total calls: " .. s.call_sequence .. ", Files: " .. s.file_count .. " --\n\n")
-		s.index_file:close()
-		s.index_file = nil
+		self:_buffer_current_trace()
 	end
 
 	s.is_tracing = false
+
+	-- NOW flush everything to disk (all I/O happens here)
+	self:_flush_all_to_disk()
 
 	local msg = string.format("Stopped. %d files saved.", s.file_count)
 	self:log(msg)
