@@ -68,6 +68,7 @@ Menu.state = {
 	item_states = {},
 	panel = nil,
 	is_minimized = false,
+	log_collapsed = true, -- log panel collapsed by default
 	log_widget = nil,
 	refresh_action = nil,
 	-- UI elements
@@ -173,6 +174,19 @@ function Menu.read_log_tail(max_lines)
 	local result = {}
 	for i = start_idx, #lines do
 		result[#result + 1] = lines[i]
+	end
+
+	-- Truncate file to keep only the last max_lines (clear stale logs)
+	if #lines > max_lines then
+		pcall(function()
+			local wf = io.open(log_path, "w")
+			if wf then
+				for _, line in ipairs(result) do
+					wf:write(line .. "\n")
+				end
+				wf:close()
+			end
+		end)
 	end
 
 	return table.concat(result, "\n")
@@ -668,153 +682,201 @@ function Menu.create(scene)
 	_log("✓ Tab buttons created (" .. #tabBtns .. " tabs)")
 
 	-- Log panel
-	--_log("Creating log panel...")
-	-- local logSection = ccui.Layout:create()
-	-- logSection:setContentSize(cc.size(PANEL_W - 20, Theme.DIMENSIONS.LOG_PANEL_H - 10))
-	-- logSection:setPosition(cc.p(10, 5))
-	-- Theme.apply_bg(logSection, Theme.BG.LOG, 255)
-	-- logSection:setClippingEnabled(true)
-	-- panel:addChild(logSection)
-	-- Menu.state.log_section = logSection
+	_log("Creating log panel...")
+	local logSection = ccui.Layout:create()
+	logSection:setContentSize(cc.size(PANEL_W - 20, Theme.DIMENSIONS.LOG_PANEL_H - 10))
+	logSection:setPosition(cc.p(10, 5))
+	Theme.apply_bg(logSection, Theme.BG.LOG, 255)
+	logSection:setClippingEnabled(true)
+	panel:addChild(logSection)
+	Menu.state.log_section = logSection
 
-	-- -- Log title
-	-- local logTitle = ccui.Text:create("📋 Log Output", "Arial", 36)
-	-- logTitle:setTextColor(Theme.to_c4b(Theme.COLORS.LOG_TITLE))
-	-- logTitle:setAnchorPoint(cc.p(0, 0.5))
-	-- logTitle:setPosition(cc.p(15, Theme.DIMENSIONS.LOG_PANEL_H - 35))
-	-- logSection:addChild(logTitle)
-	-- Menu.state.log_title = logTitle
+	-- Log title with collapse toggle
+	local logCollapseBtn = ccui.Button:create()
+	logCollapseBtn:setTitleText("▶")
+	logCollapseBtn:setTitleFontSize(36)
+	logCollapseBtn:setTitleColor(Theme.to_c3b(Theme.COLORS.LOG_TITLE))
+	logCollapseBtn:setPosition(cc.p(25, Theme.DIMENSIONS.LOG_PANEL_H - 35))
+	logSection:addChild(logCollapseBtn)
 
-	-- -- Clear log button
-	-- local btnClear = ccui.Button:create()
-	-- btnClear:setTitleText("🗑 Clear")
-	-- btnClear:setTitleFontSize(32)
-	-- btnClear:setTitleColor(Theme.to_c3b(Theme.COLORS.CLEAR_BTN))
-	-- btnClear:setPosition(cc.p(PANEL_W - 120, Theme.DIMENSIONS.LOG_PANEL_H - 35))
-	-- logSection:addChild(btnClear)
-	-- Menu.state.btn_clear = btnClear
+	local logTitle = ccui.Text:create("Log Output", "Arial", 36)
+	logTitle:setTextColor(Theme.to_c4b(Theme.COLORS.LOG_TITLE))
+	logTitle:setAnchorPoint(cc.p(0, 0.5))
+	logTitle:setPosition(cc.p(50, Theme.DIMENSIONS.LOG_PANEL_H - 35))
+	logSection:addChild(logTitle)
+	Menu.state.log_title = logTitle
 
-	-- btnClear:addTouchEventListener(
-	--     function(sender, eventType)
-	--         if eventType == 2 then
-	--             Menu.clear_log()
-	--         end
-	--     end
-	-- )
+	-- Clear log button
+	local btnClear = ccui.Button:create()
+	btnClear:setTitleText("Clear")
+	btnClear:setTitleFontSize(32)
+	btnClear:setTitleColor(Theme.to_c3b(Theme.COLORS.CLEAR_BTN))
+	btnClear:setPosition(cc.p(PANEL_W - 120, Theme.DIMENSIONS.LOG_PANEL_H - 35))
+	logSection:addChild(btnClear)
+	Menu.state.btn_clear = btnClear
 
-	-- -- Log text
-	-- local logText = ccui.Text:create("Loading...", "Arial", 36)
-	-- logText:setTextColor(Theme.to_c4b(Theme.COLORS.LOG_TEXT))
-	-- logText:setAnchorPoint(cc.p(0, 1))
-	-- logText:setPosition(cc.p(10, Theme.DIMENSIONS.LOG_PANEL_H - 70))
-	-- logText:setTextAreaSize(cc.size(PANEL_W - 50, Theme.DIMENSIONS.LOG_PANEL_H - 80))
-	-- logSection:addChild(logText)
-	-- Menu.state.log_widget = logText
-	-- _log("✓ Log panel created")
+	btnClear:addTouchEventListener(
+	    function(sender, eventType)
+	        if eventType == 2 then
+	            Menu.clear_log()
+	        end
+	    end
+	)
 
-	-- -- Resize handle
-	-- _log("Creating resize handle...")
-	-- local resizeHandle = ccui.Layout:create()
-	-- local handleSize = Theme.DIMENSIONS.RESIZE_HANDLE_SIZE or 40
-	-- resizeHandle:setContentSize(cc.size(handleSize, handleSize))
-	-- resizeHandle:setPosition(cc.p(PANEL_W - handleSize, 0))
-	-- Theme.apply_bg(resizeHandle, Theme.BG.RESIZE_HANDLE, 200)
-	-- resizeHandle:setTouchEnabled(true)
-	-- panel:addChild(resizeHandle)
-	-- Menu.state.resize_handle = resizeHandle
+	-- Log text (word wrap via width-only constraint, auto-height for tail-f)
+	local logVisibleH = Theme.DIMENSIONS.LOG_PANEL_H - 80
+	local logTextW = PANEL_W - 50
 
-	-- local resizeText = ccui.Text:create("⤡", "Arial", 28)
-	-- resizeText:setTextColor(Theme.to_c4b(Theme.COLORS.RESIZE_GRIP))
-	-- resizeText:setPosition(cc.p(handleSize / 2, handleSize / 2))
-	-- resizeHandle:addChild(resizeText)
+	-- Clipping container so text never overlaps the title
+	local logTextContainer = ccui.Layout:create()
+	logTextContainer:setContentSize(cc.size(PANEL_W - 30, logVisibleH))
+	logTextContainer:setPosition(cc.p(5, 5))
+	logTextContainer:setClippingEnabled(true)
+	logSection:addChild(logTextContainer)
 
-	-- -- Resize handling
-	-- local resizeStart = cc.p(0, 0)
-	-- local startPanelW = PANEL_W
-	-- local startPanelH = PANEL_H
+	local logText = ccui.Text:create("Loading...", "Arial", 36)
+	logText:setTextColor(Theme.to_c4b(Theme.COLORS.LOG_TEXT))
+	logText:setTextAreaSize(cc.size(logTextW, 0)) -- width for word wrap, 0 = auto-height
+	logText:setAnchorPoint(cc.p(0, 0)) -- bottom-left anchor
+	logText:setPosition(cc.p(5, 0)) -- start at bottom of container
+	logTextContainer:addChild(logText)
+	Menu.state.log_widget = logText
 
-	-- resizeHandle:addTouchEventListener(
-	--     function(sender, eventType)
-	--         if eventType == 0 then
-	--             resizeStart = sender:getTouchBeganPosition()
-	--             startPanelW = Menu.state.current_panel_w or PANEL_W
-	--             startPanelH = Menu.state.current_panel_h or PANEL_H
-	--             Menu.state.is_resizing = true
-	--         elseif eventType == 1 and Menu.state.is_resizing then
-	--             local touch = sender:getTouchMovePosition()
-	--             local dx = touch.x - resizeStart.x
-	--             local dy = touch.y - resizeStart.y
+	-- Default: collapsed (hide text + clear button)
+	logTextContainer:setVisible(false)
+	btnClear:setVisible(false)
 
-	--             local newW =
-	--                 math.max(
-	--                 Theme.DIMENSIONS.PANEL_MIN_W or 800,
-	--                 math.min(Theme.DIMENSIONS.PANEL_MAX_W or 2000, startPanelW + dx)
-	--             )
+	-- Collapse toggle handler
+	logCollapseBtn:addTouchEventListener(function(sender, eventType)
+	    if eventType == 2 then
+	        Menu.state.log_collapsed = not Menu.state.log_collapsed
+	        local collapsed = Menu.state.log_collapsed
+	        pcall(function()
+	            logCollapseBtn:setTitleText(collapsed and "▶" or "▼")
+	            logTextContainer:setVisible(not collapsed)
+	            btnClear:setVisible(not collapsed)
+	        end)
+	    end
+	end)
+	Menu.state.log_collapse_btn = logCollapseBtn
+	_log("Log panel created (collapsed by default)")
 
-	--             local minH =
-	--                 Theme.DIMENSIONS.TITLE_BAR_H + Theme.DIMENSIONS.TAB_BAR_H + 200 + Theme.DIMENSIONS.LOG_PANEL_H
-	--             local maxH = 2000
-	--             local newH = math.max(minH, math.min(maxH, startPanelH + dy))
+	-- Resize handle
+	_log("Creating resize handle...")
+	local resizeHandle = ccui.Layout:create()
+	local handleSize = Theme.DIMENSIONS.RESIZE_HANDLE_SIZE or 40
+	resizeHandle:setContentSize(cc.size(handleSize, handleSize))
+	resizeHandle:setPosition(cc.p(PANEL_W - handleSize, 0))
+	Theme.apply_bg(resizeHandle, Theme.BG.RESIZE_HANDLE, 200)
+	resizeHandle:setTouchEnabled(true)
+	panel:addChild(resizeHandle)
+	Menu.state.resize_handle = resizeHandle
 
-	--             Menu.resize_visual(newW, newH)
-	--         elseif eventType == 2 then
-	--             Menu.state.is_resizing = false
-	--             Menu.resize_full(Menu.state.current_panel_w, Menu.state.current_panel_h)
-	--         elseif eventType == 3 then
-	--             Menu.state.is_resizing = false
-	--         end
-	--     end
-	-- )
-	-- _log("✓ Resize handle created")
+	local resizeText = ccui.Text:create("⤡", "Arial", 28)
+	resizeText:setTextColor(Theme.to_c4b(Theme.COLORS.RESIZE_GRIP))
+	resizeText:setPosition(cc.p(handleSize / 2, handleSize / 2))
+	resizeHandle:addChild(resizeText)
 
-	-- -- Log refresh
-	-- _log("Setting up log refresh...")
-	-- local function refreshLog()
-	--     if Menu.state.log_widget then
-	--         local content = Menu.read_log_tail()
-	--         pcall(
-	--             function()
-	--                 Menu.state.log_widget:setString(content or "(No logs)")
-	--             end
-	--         )
-	--     end
-	-- end
+	-- Resize handling
+	local resizeStart = cc.p(0, 0)
+	local startPanelW = PANEL_W
+	local startPanelH = PANEL_H
 
-	-- _log("Creating refresh action (interval: " .. tostring(Theme.DIMENSIONS.LOG_REFRESH_INTERVAL) .. ")...")
-	-- local ok_action, err_action =
-	--     pcall(
-	--     function()
-	--         Menu.state.refresh_action =
-	--             cc.RepeatForever:create(
-	--             cc.Sequence:create(
-	--                 {
-	--                     cc.DelayTime:create(Theme.DIMENSIONS.LOG_REFRESH_INTERVAL or 1.0),
-	--                     cc.CallFunc:create(refreshLog)
-	--                 }
-	--             )
-	--         )
-	--     end
-	-- )
+	resizeHandle:addTouchEventListener(
+	    function(sender, eventType)
+	        if eventType == 0 then
+	            resizeStart = sender:getTouchBeganPosition()
+	            startPanelW = Menu.state.current_panel_w or PANEL_W
+	            startPanelH = Menu.state.current_panel_h or PANEL_H
+	            Menu.state.is_resizing = true
+	        elseif eventType == 1 and Menu.state.is_resizing then
+	            local touch = sender:getTouchMovePosition()
+	            local dx = touch.x - resizeStart.x
+	            local dy = touch.y - resizeStart.y
 
-	-- if not ok_action then
-	--     _log("ERROR creating refresh action: " .. tostring(err_action))
-	-- else
-	--     _log("✓ Refresh action created")
-	-- end
+	            local newW =
+	                math.max(
+	                Theme.DIMENSIONS.PANEL_MIN_W or 800,
+	                math.min(Theme.DIMENSIONS.PANEL_MAX_W or 2000, startPanelW + dx)
+	            )
 
-	-- _log("Running refresh action on scene...")
-	-- local ok_run, err_run =
-	--     pcall(
-	--     function()
-	--         scene:runAction(Menu.state.refresh_action)
-	--     end
-	-- )
+	            local minH =
+	                Theme.DIMENSIONS.TITLE_BAR_H + Theme.DIMENSIONS.TAB_BAR_H + 200 + Theme.DIMENSIONS.LOG_PANEL_H
+	            local maxH = 2000
+	            local newH = math.max(minH, math.min(maxH, startPanelH + dy))
 
-	-- if not ok_run then
-	--     _log("ERROR running refresh action: " .. tostring(err_run))
-	-- else
-	--     _log("✓ Log refresh scheduled")
-	-- end
+	            Menu.resize_visual(newW, newH)
+	        elseif eventType == 2 then
+	            Menu.state.is_resizing = false
+	            Menu.resize_full(Menu.state.current_panel_w, Menu.state.current_panel_h)
+	        elseif eventType == 3 then
+	            Menu.state.is_resizing = false
+	        end
+	    end
+	)
+	_log("✓ Resize handle created")
+
+	-- Log refresh (tail -f: newest lines always visible at bottom)
+	_log("Setting up log refresh...")
+	local lastLogContent = ""
+	local function refreshLog()
+	    if not Menu.state.log_widget then return end
+	    if Menu.state.log_collapsed then return end -- skip when collapsed
+	    local content = Menu.read_log_tail(50)
+	    if content == lastLogContent then return end -- skip if unchanged
+	    lastLogContent = content
+	    pcall(function()
+	        Menu.state.log_widget:setString(content or "(No logs)")
+	        -- Reposition so newest lines (bottom) are always visible
+	        local textH = logVisibleH
+	        pcall(function()
+	            textH = Menu.state.log_widget:getVirtualRendererSize().height
+	        end)
+	        if textH > logVisibleH then
+	            -- Text overflows: anchor bottom of text to bottom of container
+	            Menu.state.log_widget:setPosition(cc.p(5, 0))
+	        else
+	            -- Text fits: position at top of container
+	            Menu.state.log_widget:setPosition(cc.p(5, logVisibleH - textH))
+	        end
+	    end)
+	end
+
+	_log("Creating refresh action (interval: " .. tostring(Theme.DIMENSIONS.LOG_REFRESH_INTERVAL) .. ")...")
+	local ok_action, err_action =
+	    pcall(
+	    function()
+	        Menu.state.refresh_action =
+	            cc.RepeatForever:create(
+	            cc.Sequence:create(
+	                {
+	                    cc.DelayTime:create(Theme.DIMENSIONS.LOG_REFRESH_INTERVAL or 1.0),
+	                    cc.CallFunc:create(refreshLog)
+	                }
+	            )
+	        )
+	    end
+	)
+
+	if not ok_action then
+	    _log("ERROR creating refresh action: " .. tostring(err_action))
+	else
+	    _log("✓ Refresh action created")
+	end
+
+	_log("Running refresh action on scene...")
+	local ok_run, err_run =
+	    pcall(
+	    function()
+	        scene:runAction(Menu.state.refresh_action)
+	    end
+	)
+
+	if not ok_run then
+	    _log("ERROR running refresh action: " .. tostring(err_run))
+	else
+	    _log("✓ Log refresh scheduled")
+	end
 
 	-- Initialize tab (restore saved or default to 1)
 	local init_tab = 1
