@@ -1,11 +1,11 @@
 -- ============================================================
--- MAIN.LUA - New Entry Point (uses modular menu system)
+-- MAIN.LUA - Entry Point (uses modular menu system)
 -- ============================================================
 -- This is the main script that loads all modules and initializes
--- the new config-driven debug menu.
+-- the config-driven debug menu.
 --
 -- Structure:
---   lib/bootstrap.lua  - Core utilities (Constants, Logger, Utils)
+--   lib/bootstrap.lua  - Core (Constants, Logger, HookManager, etc.)
 --   ui/menu.lua        - Config-driven tab menu UI
 --   ui/menu_config.lua - All tabs, items, and action wiring
 --   actions/*.lua      - All gameplay functionality
@@ -22,7 +22,7 @@ local SCRIPTS_PATH = "C:\\temp\\Where Winds Meet\\Scripts\\"
 -- ============================================================
 local Logger = dofile(SCRIPTS_PATH .. "lib\\logger.lua")
 Logger.log("Loading bootstrap...")
-ok, err = pcall(function()
+local ok, err = pcall(function()
 	dofile(SCRIPTS_PATH .. "lib\\bootstrap.lua")
 end)
 if not ok then
@@ -30,7 +30,7 @@ if not ok then
 	return
 end
 local Reg = _G.Reg
-local Utils = Reg.get("Utils")
+Logger = Reg.lib("Logger")
 
 -- ============================================================
 -- 2) VALIDATE ENVIRONMENT
@@ -97,9 +97,20 @@ if not valid then
 	return
 end
 
+-- ============================================================
+-- 3) BYPASS ANTICHEAT
+-- ============================================================
 Logger.log("Bypassing Anticheat...")
-local acb = Utils.safe_dofile(SCRIPTS_PATH .. "lib\\anticheat_bypass.lua")
-acb.enable()
+
+local ok, err = pcall(function()
+	local acb = dofile(SCRIPTS_PATH .. "lib\\anticheat_bypass.lua")
+	acb.enable()
+end)
+
+if not ok then
+	Logger.log("ERROR: Failed to bypass Anticheat: " .. tostring(err))
+	return
+end
 
 Logger.log("Script started successfully")
 Logger.log("=== SCRIPT INITIALIZATION STARTED ===")
@@ -112,78 +123,44 @@ Logger.log("Screen size: " .. size.width .. "x" .. size.height)
 -- 4) REMOVE OLD MENU (if exists)
 -- ============================================================
 local function remove_old_menu()
-	-- Try to use Menu.hide() if Menu is loaded (proper cleanup)
-	if Reg and Reg.has("Menu") then
-		local Menu = Reg.get("Menu")
-		if Menu and Menu.hide then
-			pcall(Menu.hide)
-			Logger.log("Removed existing menu (via Menu.hide)")
-			return
-		end
-	end
-
-	-- Fallback: direct removal
-	if _G.GM_MENU then
-		pcall(function()
-			_G.GM_MENU:removeFromParent()
-		end)
-		_G.GM_MENU = nil
-		Logger.log("Removed existing menu (direct removal)")
+	local MENU_STATE = Reg.state("ui.menu")
+	if MENU_STATE and MENU_STATE.api and MENU_STATE.api.hide then
+		pcall(MENU_STATE.api.hide)
+		Logger.log("Removed existing menu (via Menu.hide)")
+		return
 	end
 end
 
 remove_old_menu()
 
 -- ============================================================
--- 5) LOAD REFACTORED UI DEPENDENCIES
+-- 5) LOAD AND SHOW MENU
 -- ============================================================
-Logger.log("Loading UI module...")
+Logger.log("Loading menu system...")
 
--- Load and register Theme (required by all UI components)
-Logger.log("Loading Theme...")
-local Theme = Utils.safe_dofile(SCRIPTS_PATH .. "ui\\lib\\theme.lua", "Theme")
-if Theme then
-	Reg.set("Theme", Theme)
-	Logger.log("✓ Theme loaded and registered")
+local ok_theme, Theme = pcall(dofile, SCRIPTS_PATH .. "ui\\lib\\theme.lua")
+if ok_theme and Theme then
+	Reg.set_lib("Theme", Theme)
+	Logger.log("Theme loaded")
 else
 	Logger.log("ERROR: Failed to load Theme")
 end
 
--- Load and register UIUtils (required by menu and dialogs)
-Logger.log("Loading UIUtils...")
-local UIUtils = Utils.safe_dofile(SCRIPTS_PATH .. "ui\\lib\\ui_utils.lua", "UIUtils")
-if UIUtils then
-	Reg.set("UIUtils", UIUtils)
-	Logger.log("✓ UIUtils loaded and registered")
+local ok_ui, UIUtils = pcall(dofile, SCRIPTS_PATH .. "ui\\lib\\ui_utils.lua")
+if ok_ui and UIUtils then
+	Reg.set_lib("UIUtils", UIUtils)
+	Logger.log("UIUtils loaded")
 else
 	Logger.log("ERROR: Failed to load UIUtils")
 end
 
--- ============================================================
--- 6) LOAD NEW MENU SYSTEM
--- ============================================================
-Logger.log("Creating tab-based menu...")
+local ok_menu, Menu = pcall(dofile, SCRIPTS_PATH .. "ui\\menu.lua")
 
-local Menu = Utils.safe_dofile(SCRIPTS_PATH .. "ui\\menu.lua", "Menu")
-
-if Menu then
-	-- Register Menu in Reg for cleanup
-	Reg.set("Menu", Menu)
-	-- Menu.clear_log()
-	local menuPanel = Menu.create(scene)
-
-	if menuPanel then
-		_G.GM_MENU = menuPanel
-		Logger.log("=== UI INITIALIZATION COMPLETE ===")
-	else
-		Logger.log("ERROR: Failed to create menu panel")
-	end
+if ok_menu and Menu then
+	Menu.show(scene)
+	Logger.log("=== UI INITIALIZATION COMPLETE ===")
 else
-	Logger.log("ERROR: Failed to load Menu module")
+	Logger.log("ERROR: Failed to load Menu module: " .. tostring(Menu))
 end
 
--- print(Utils.dump_value(G.datam.guise_suit_config:items()))
--- print(G.locale_manager:get_locale_text_by_tid(-3877992997924375028))
--- local events = require("hexm.client.consts.event_consts")
---print(Utils.dump_value(events, { pretty = true }))
 Logger.log("=== SCRIPT INITIALIZATION COMPLETE ===")

@@ -137,6 +137,7 @@ local function _normalize(val, depth, max_depth, seen)
 	if t == "instance" or t == "class" then
 		local result = { __type = t }
 		pcall(function()
+			result.tostring = tostring(val)
 			if val.__cname__ then
 				result.__class = val.__cname__
 			end
@@ -176,15 +177,13 @@ Serialize.normalize = _normalize
 
 function Serialize.dump_value(val, options)
 	options = options or {}
-	local max_depth = options.max_depth or 5
-	local pretty = options.pretty ~= false
+	local pretty = options.pretty or false
 
 	-- Normalize game types first
 	local normalized = _normalize(val, 0, max_depth, {})
 
 	-- Use inspect for pretty printing
 	return inspect(normalized, {
-		depth = max_depth,
 		pretty = pretty,
 		newline = pretty and "\n" or " ",
 		indent = "  ",

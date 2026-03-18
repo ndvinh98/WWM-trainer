@@ -294,7 +294,7 @@ end
 -- ============================================================
 -- REDIRECT PRINT TO LOGGER
 -- ============================================================
-
+_G.print_file = "sprint.txt"
 _G.print = function(...)
 	local n = select("#", ...)
 	if n > 0 then
@@ -302,7 +302,7 @@ _G.print = function(...)
 		for i = 1, n do
 			parts[i] = tostring(select(i, ...))
 		end
-		Logger.log("[Print] " .. table.concat(parts, "\t"))
+		Logger.log("[Print] " .. table.concat(parts, "\t"), _G.print_file)
 	end
 end
 
