@@ -76,12 +76,23 @@ function Buffs:_reapply(preset_name)
 		return
 	end
 	local applied = 0
+	local already = 0
 	for _, buff_id in ipairs(buffs) do
-		if self:apply_buff(buff_id) then
+		if mp:has_buff(buff_id) then
+			already = already + 1
+		elseif self:apply_buff(buff_id) then
 			applied = applied + 1
 		end
 	end
-	self:log(string.format("Re-applied preset '%s': %d/%d", preset_name, applied, #buffs))
+	self:log(
+		string.format(
+			"Re-applied preset '%s': %d applied, %d already active, %d total",
+			preset_name,
+			applied,
+			already,
+			#buffs
+		)
+	)
 end
 
 function Buffs:_update_hooks()

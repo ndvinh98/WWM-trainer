@@ -50,28 +50,38 @@ local PROGRESS_CLIENT_FIRST = 3
 -- ============================================================
 
 function AutoLoot:_log(msg)
-	if self.state.log_cache[msg] then return end
+	if self.state.log_cache[msg] then
+		return
+	end
 	self.state.log_cache[msg] = true
 	self:log(msg)
 end
 
 function AutoLoot:_debug(msg)
-	if not self.state.enable_logging then return end
-	if self.state.log_cache[msg] then return end
+	if not self.state.enable_logging then
+		return
+	end
+	if self.state.log_cache[msg] then
+		return
+	end
 	self.state.log_cache[msg] = true
 	self:log("[DBG] " .. msg)
 end
 
 function AutoLoot:_get_event_consts()
 	local ok, m = pcall(portable.safe_import, "hexm.client.consts.event_consts")
-	if ok then return m end
+	if ok then
+		return m
+	end
 	self:_debug("WARN: could not load event_consts: " .. tostring(m))
 	return nil
 end
 
 function AutoLoot:_build_interact_bd(entity, way_no, comp_id)
 	local entity_no = 0
-	pcall(function() entity_no = entity:get_No() or entity.entity_no or 0 end)
+	pcall(function()
+		entity_no = entity:get_No() or entity.entity_no or 0
+	end)
 
 	local pos_list = nil
 	pcall(function()
@@ -81,7 +91,7 @@ function AutoLoot:_build_interact_bd(entity, way_no, comp_id)
 
 	local way_info = { way_no = way_no, comp_id = comp_id }
 	local ClassUtils = require("common.classutils")
-	
+
 	local bd = {
 		way_info = ClassUtils.CustomMapType(way_info):to_valid_dict(),
 		client_No = entity_no,
@@ -95,15 +105,21 @@ end
 -- Cancel any in-flight pending interaction (clean up listener + timeout).
 function AutoLoot:_cancel_pending()
 	local p = self.state.pending
-	if not p then return end
+	if not p then
+		return
+	end
 	if p.listener then
-		pcall(function() HexPlugin.Dispatcher.listener_cancel(p.listener) end)
+		pcall(function()
+			HexPlugin.Dispatcher.listener_cancel(p.listener)
+		end)
 		p.listener = nil
 	end
 	if p.timeout_action then
 		pcall(function()
 			local scene = _G.Reg.lib("Cocos").get_running_scene()
-			if scene then scene:stopAction(p.timeout_action) end
+			if scene then
+				scene:stopAction(p.timeout_action)
+			end
 		end)
 		p.timeout_action = nil
 	end
@@ -142,10 +158,20 @@ function AutoLoot:_on_start_back(event, data)
 		local ok, e = pcall(function()
 			G.net:call_server("rpc_request_active_interact_result_and_end", entity_id, way_no, bd)
 		end)
-		if ok then self:_log("  result_and_end sent OK") else self:_log("  result_and_end call_server ERROR: " .. tostring(e)) end
+		if ok then
+			self:_log("  result_and_end sent OK")
+		else
+			self:_log("  result_and_end call_server ERROR: " .. tostring(e))
+		end
 	else
 		local Serialize = _G.Reg.lib("Serialize")
-		self:_log(string.format("  start_back FAILED err=%s data=%s — marking done, no retry", err, Serialize.dump_value(data)))
+		self:_log(
+			string.format(
+				"  start_back FAILED err=%s data=%s — marking done, no retry",
+				err,
+				Serialize.dump_value(data)
+			)
+		)
 		if self.state.interaction_mode == "B" then
 			self:_log("  Fallback-B: trigger_active_interact")
 			pcall(function()
@@ -165,7 +191,9 @@ function AutoLoot:_start_interact_A(entity, way_no, comp_id)
 
 	self:_log(string.format("A: START → entity=%s way=%s comp=%s", entity_id, way_no, comp_id))
 	local event_consts = self:_get_event_consts()
-	if not event_consts then return end
+	if not event_consts then
+		return
+	end
 
 	local listener = nil
 	local ok, e = pcall(function()
@@ -225,7 +253,11 @@ function AutoLoot:_start_interact_B(entity, way_no, comp_id)
 	local ok, e = pcall(function()
 		G.main_player:trigger_active_interact(way_no, entity_id, nil, nil, comp_id)
 	end)
-	if ok then self:_log("  B: trigger_active_interact called OK") else self:_log("  B: trigger_active_interact ERROR: " .. tostring(e)) end
+	if ok then
+		self:_log("  B: trigger_active_interact called OK")
+	else
+		self:_log("  B: trigger_active_interact ERROR: " .. tostring(e))
+	end
 	self.state.done[entity_id] = true
 end
 
@@ -248,7 +280,11 @@ function AutoLoot:_direct_result_client_first(entity, way_no, comp_id)
 	local ok, e = pcall(function()
 		G.net:call_server("rpc_request_active_interact_result", entity_id, way_no, bd)
 	end)
-	if ok then self:_log("  C1: RESULT sent OK (no wait)") else self:_log("  C1: RESULT ERROR: " .. tostring(e)) end
+	if ok then
+		self:_log("  C1: RESULT sent OK (no wait)")
+	else
+		self:_log("  C1: RESULT ERROR: " .. tostring(e))
+	end
 
 	self.state.done[entity_id] = true
 end
@@ -285,7 +321,9 @@ function AutoLoot:_direct_result_call_result(entity, way_no, comp_id)
 
 	self:_log(string.format("C2: CALL_RESULT RESULT → entity=%s way=%s comp=%s", entity_id, way_no, comp_id))
 	local event_consts = self:_get_event_consts()
-	if not event_consts then return end
+	if not event_consts then
+		return
+	end
 
 	local listener = nil
 	local ok, e = pcall(function()
@@ -340,6 +378,78 @@ function AutoLoot:_direct_result_call_result(entity, way_no, comp_id)
 end
 
 -- ============================================================
+-- Option F: Drop-status transit (for co-located reward entities like 4500191)
+-- These entities have an interact_comp whose current status has no active_ways,
+-- but a sibling status has enable_drop=1.  Force-transit to the drop status,
+-- then send the terrain identifier and upload drop result.
+-- ============================================================
+
+function AutoLoot:_find_drop_status_from_comp(interact_comp)
+	if not interact_comp or not interact_comp.components then
+		return nil
+	end
+	local comp_no = nil
+	for _, cd in pairs(interact_comp.components) do
+		comp_no = cd.comp_no
+		break
+	end
+	if not comp_no then
+		return nil
+	end
+	local drop = nil
+	pcall(function()
+		local status_list = G.datam.interact_comp_index:get(comp_no, {}):get("status", {})
+		for i = 1, #status_list do
+			local sno = status_list[i]
+			local sd = G.datam.interact_comp_status:get(sno, nil)
+			if sd and sd:get("enable_drop", 0) == 1 then
+				drop = sno
+				return
+			end
+		end
+	end)
+	return drop
+end
+
+function AutoLoot:_force_drop_interact(entity, drop_status)
+	local entity_id = entity.entity_id
+	self:_log(string.format("F: DROP_TRANSIT → entity=%s status=%s", entity_id, tostring(drop_status)))
+
+	local ok1, e1 = pcall(function()
+		G.main_player:interact_trans_force_transit_comp_status(entity_id, drop_status)
+	end)
+	if not ok1 then
+		self:_log("  F: force_transit ERROR: " .. tostring(e1))
+		self.state.done[entity_id] = true
+		return
+	end
+
+	pcall(function()
+		G.net:call_server("rpc_interact_trans_send_identifier", entity_id, "rb_contact_terrain")
+	end)
+
+	local pos_tuple = nil
+	local yaw = 0
+	pcall(function()
+		local p = entity:get_position()
+		pos_tuple = { p[1], p[2], p[3] }
+		yaw = entity:get_yaw() or 0
+	end)
+	if pos_tuple then
+		local ClassUtils = require("common.classutils")
+		local drop_result =
+			ClassUtils.CustomMapType({ pos = ClassUtils.CustomMapType(pos_tuple):to_valid_dict(), yaw = yaw })
+				:to_valid_dict()
+		pcall(function()
+			G.net:call_server("rpc_upload_drop_result", entity_id, drop_result)
+		end)
+	end
+	self:_log("  F: drop transit sent OK — will re-check on next scan")
+	-- Do NOT mark done here. The entity will auto-transition (e.g. 63004602 → 63004603)
+	-- and needs a second interaction pass to actually be consumed/collected.
+end
+
+-- ============================================================
 -- Option D: Break Entity (for breakable entities with TAG_GENERAL_STROKE)
 -- These entities have no active_interact data and empty components.
 -- They are destroyed by transitioning to a status with enter_broken_state=1.
@@ -347,8 +457,12 @@ end
 
 function AutoLoot:_find_broken_status(comp_no)
 	local status_list = nil
-	pcall(function() status_list = G.datam.interact_comp_index:get(comp_no, {}):get("status", {}) end)
-	if not status_list then return nil end
+	pcall(function()
+		status_list = G.datam.interact_comp_index:get(comp_no, {}):get("status", {})
+	end)
+	if not status_list then
+		return nil
+	end
 	local Serialize = _G.Reg.lib("Serialize")
 	self:_debug(string.format("  D: comp_no=%s status_list=%s", tostring(comp_no), Serialize.dump_value(status_list)))
 	local broken = nil
@@ -372,19 +486,26 @@ function AutoLoot:_break_entity(entity, interact_comp)
 
 	local broken_status = nil
 	local ic_no = nil
-	pcall(function() ic_no = interact_comp and interact_comp.No end)
-	if ic_no then broken_status = self:_find_broken_status(ic_no) end
-	if not broken_status and ent_no then broken_status = self:_find_broken_status(ent_no) end
+	pcall(function()
+		ic_no = interact_comp and interact_comp.No
+	end)
+	if ic_no then
+		broken_status = self:_find_broken_status(ic_no)
+	end
+	if not broken_status and ent_no then
+		broken_status = self:_find_broken_status(ent_no)
+	end
 
 	if broken_status then
-		self:_log(string.format("  D: broken_status=%s → rpc_force_transit_comp_status", tostring(broken_status)))
-		local ts = nil
-		pcall(function() ts = DateTimeManager:now() end)
-		ts = ts or os.time()
+		self:_log(string.format("  D: broken_status=%s → interact_trans_force_transit", tostring(broken_status)))
 		local ok, e = pcall(function()
-			G.net:call_server("rpc_force_transit_comp_status", entity_id, broken_status, ts)
+			G.main_player:interact_trans_force_transit_comp_status(entity_id, broken_status)
 		end)
-		if ok then self:_log("  D: rpc_force_transit_comp_status sent") else self:_log("  D: rpc_force_transit_comp_status ERROR: " .. tostring(e)) end
+		if ok then
+			self:_log("  D: interact_trans_force_transit sent")
+		else
+			self:_log("  D: interact_trans_force_transit ERROR: " .. tostring(e))
+		end
 		self.state.done[entity_id] = true
 		return
 	end
@@ -423,7 +544,43 @@ function AutoLoot:_break_entity(entity, interact_comp)
 			ClassUtils.CustomMapType({ creator_id = G.main_player_id }):to_valid_dict()
 		)
 	end)
-	if ok1 then self:_log("  D: wanfa resource damage applied") else self:_log("  D: wanfa resource damage ERROR: " .. tostring(e1)) end
+	if ok1 then
+		self:_log("  D: wanfa resource damage applied")
+	else
+		self:_log("  D: wanfa resource damage ERROR: " .. tostring(e1))
+	end
+	self.state.done[entity_id] = true
+end
+
+-- ============================================================
+-- Option E: Collect entities (butterflies, birds, fly chests)
+-- These use simulate_get_reward instead of the active interact
+-- protocol. Try ENTER_SCOPE (4) first, then TELEKINESIS (1).
+-- ============================================================
+
+function AutoLoot:_collect_entity(entity)
+	local entity_id = entity.entity_id
+	self:_log(string.format("E: COLLECT → entity=%s no=%s", entity_id, tostring(entity.No)))
+	local collected = false
+	-- Try ENTER_SCOPE (4) — simulates player walking into range
+	local ok, e = pcall(function()
+		entity:interact_comp_handler_simulate_get_reward(4)
+		collected = true
+	end)
+	if not ok then
+		self:_debug("  E: ENTER_SCOPE failed: " .. tostring(e))
+		-- Fallback: try TELEKINESIS (1) — simulates fire arrow
+		local ok2, e2 = pcall(function()
+			entity:interact_comp_handler_simulate_get_reward(1)
+			collected = true
+		end)
+		if not ok2 then
+			self:_debug("  E: TELEKINESIS failed: " .. tostring(e2))
+		end
+	end
+	if collected then
+		self:_log("  E: collect reward sent")
+	end
 	self.state.done[entity_id] = true
 end
 
@@ -438,7 +595,9 @@ function AutoLoot:_force_transit_interact(entity, way_no, comp_id)
 	self:_log(string.format("C3: FORCE_TRANSIT → entity=%s way=%s comp=%s", entity_id, way_no, comp_id))
 
 	local interact_comp = nil
-	pcall(function() interact_comp = G.space:get_interact_comp(entity_id) or entity:get_interact_comp() end)
+	pcall(function()
+		interact_comp = G.space:get_interact_comp(entity_id) or entity:get_interact_comp()
+	end)
 
 	local target_status = nil
 	local identifier = "rb_contact_terrain"
@@ -446,10 +605,16 @@ function AutoLoot:_force_transit_interact(entity, way_no, comp_id)
 
 	local function _find_destroy_status(comp_no, skip_status)
 		local status_list = nil
-		pcall(function() status_list = G.datam.interact_comp_index:get(comp_no, {}):get("status", {}) end)
-		if not status_list then return nil end
+		pcall(function()
+			status_list = G.datam.interact_comp_index:get(comp_no, {}):get("status", {})
+		end)
+		if not status_list then
+			return nil
+		end
 		local Serialize = _G.Reg.lib("Serialize")
-		self:_debug(string.format("  C3: comp_no=%s status_list=%s", tostring(comp_no), Serialize.dump_value(status_list)))
+		self:_debug(
+			string.format("  C3: comp_no=%s status_list=%s", tostring(comp_no), Serialize.dump_value(status_list))
+		)
 		pcall(function()
 			for i = 1, #status_list do
 				local sno = status_list[i]
@@ -468,14 +633,25 @@ function AutoLoot:_force_transit_interact(entity, way_no, comp_id)
 	if interact_comp and interact_comp.components then
 		for cid, comp_data in pairs(interact_comp.components) do
 			current_status = comp_data.status_no
-			self:_debug(string.format("  C3: comp cid=%s comp_no=%s status=%s", cid, tostring(comp_data.comp_no), tostring(current_status)))
+			self:_debug(
+				string.format(
+					"  C3: comp cid=%s comp_no=%s status=%s",
+					cid,
+					tostring(comp_data.comp_no),
+					tostring(current_status)
+				)
+			)
 			_find_destroy_status(comp_data.comp_no, current_status)
 			break
 		end
 	end
 
-	if not target_status and interact_comp then _find_destroy_status(interact_comp.No, current_status) end
-	if not target_status then _find_destroy_status(entity.No, current_status) end
+	if not target_status and interact_comp then
+		_find_destroy_status(interact_comp.No, current_status)
+	end
+	if not target_status then
+		_find_destroy_status(entity.No, current_status)
+	end
 
 	if not target_status then
 		self.state.done[entity_id] = true
@@ -483,14 +659,18 @@ function AutoLoot:_force_transit_interact(entity, way_no, comp_id)
 	end
 
 	self:_log(string.format("  C3: target_status=%s identifier=%s", tostring(target_status), identifier))
-	local ok1, e1 = pcall(function() G.main_player:interact_trans_force_transit_comp_status(entity_id, target_status) end)
+	local ok1, e1 = pcall(function()
+		G.main_player:interact_trans_force_transit_comp_status(entity_id, target_status)
+	end)
 	if not ok1 then
 		self:_log("  C3: rpc_force_transit_comp_status ERROR: " .. tostring(e1))
 		self.state.done[entity_id] = true
 		return
 	end
 
-	pcall(function() G.net:call_server("rpc_interact_trans_send_identifier", entity_id, identifier) end)
+	pcall(function()
+		G.net:call_server("rpc_interact_trans_send_identifier", entity_id, identifier)
+	end)
 	local pos_tuple = nil
 	local yaw = 0
 	pcall(function()
@@ -501,8 +681,12 @@ function AutoLoot:_force_transit_interact(entity, way_no, comp_id)
 
 	if pos_tuple then
 		local ClassUtils = require("common.classutils")
-		local drop_result = ClassUtils.CustomMapType({ pos = ClassUtils.CustomMapType(pos_tuple):to_valid_dict(), yaw = yaw }):to_valid_dict()
-		pcall(function() G.net:call_server("rpc_upload_drop_result", entity_id, drop_result) end)
+		local drop_result =
+			ClassUtils.CustomMapType({ pos = ClassUtils.CustomMapType(pos_tuple):to_valid_dict(), yaw = yaw })
+				:to_valid_dict()
+		pcall(function()
+			G.net:call_server("rpc_upload_drop_result", entity_id, drop_result)
+		end)
 	end
 	self.state.done[entity_id] = true
 end
@@ -521,7 +705,9 @@ function AutoLoot:try_interact_entity(entity, interact_misc)
 	local comp_id = nil
 	local cur_status_no = nil
 	local interact_comp = nil
-	pcall(function() interact_comp = entity:get_interact_comp() or G.space:get_interact_comp(entity_id) end)
+	pcall(function()
+		interact_comp = entity:get_interact_comp() or G.space:get_interact_comp(entity_id)
+	end)
 
 	if interact_comp and interact_comp.components then
 		for cid, comp_data in pairs(interact_comp.components) do
@@ -533,7 +719,15 @@ function AutoLoot:try_interact_entity(entity, interact_misc)
 	comp_id = comp_id or entity_id
 
 	local Serialize = _G.Reg.lib("Serialize")
-	self:_log(string.format("try_interact | entity=%s comp=%s status=%s tag=%s", tostring(entity_id), tostring(comp_id), tostring(cur_status_no), Serialize.dump_value(entity.tag)))
+	self:_log(
+		string.format(
+			"try_interact | entity=%s comp=%s status=%s tag=%s",
+			tostring(entity_id),
+			tostring(comp_id),
+			tostring(cur_status_no),
+			Serialize.dump_value(entity.tag)
+		)
+	)
 	self:_debug("  interact_comp=" .. Serialize.dump_value(interact_comp))
 
 	if not cur_status_no then
@@ -556,16 +750,24 @@ function AutoLoot:try_interact_entity(entity, interact_misc)
 				self:_break_entity(entity, interact_comp)
 				return
 			end
+			if entity.interact_comp_handler_simulate_get_reward then
+				self:_collect_entity(entity)
+				return
+			end
 			self:_debug("  skip: no cur_status_no")
 			return
 		end
 	end
 
-	local ok_status, status_data = pcall(function() return G.datam.interact_comp_status:get(cur_status_no, nil) end)
+	local ok_status, status_data = pcall(function()
+		return G.datam.interact_comp_status:get(cur_status_no, nil)
+	end)
 	local active_ways = nil
 	if ok_status and status_data then
 		local destroy_status = nil
-		pcall(function() destroy_status = status_data:get("destroy_status") end)
+		pcall(function()
+			destroy_status = status_data:get("destroy_status")
+		end)
 		if destroy_status == 1 then
 			self:_debug(string.format("  skip: destroy_status=1 for status=%s", cur_status_no))
 			self.state.done[entity_id] = true
@@ -574,12 +776,32 @@ function AutoLoot:try_interact_entity(entity, interact_misc)
 
 		active_ways = status_data:get("active_ways")
 		local has_ways = false
-		if active_ways then pcall(function() has_ways = (#active_ways > 0) end) end
+		if active_ways then
+			pcall(function()
+				has_ways = (#active_ways > 0)
+			end)
+		end
 		if not has_ways then
+			-- Check for a drop-status sibling (Option F: co-located reward entities)
+			-- Guard: only fire if the entity is NOT already at the drop status (prevents loops)
+			if interact_comp then
+				local drop_status = self:_find_drop_status_from_comp(interact_comp)
+				if drop_status and drop_status ~= cur_status_no then
+					self:_force_drop_interact(entity, drop_status)
+					return
+				end
+			end
 			self:_debug(string.format("  skip: no active_ways for status=%s", cur_status_no))
 			return
 		end
-		self:_debug(string.format("  status=%s active_ways=%s destroy=%s", cur_status_no, Serialize.dump_value(active_ways), tostring(destroy_status)))
+		self:_debug(
+			string.format(
+				"  status=%s active_ways=%s destroy=%s",
+				cur_status_no,
+				Serialize.dump_value(active_ways),
+				tostring(destroy_status)
+			)
+		)
 	else
 		self:_debug(string.format("  WARN: interact_comp_status lookup failed for status=%s", cur_status_no))
 	end
@@ -608,15 +830,30 @@ function AutoLoot:try_interact_entity(entity, interact_misc)
 	end
 
 	local server_process = PROGRESS_NORMAL
-	pcall(function() server_process = way_data:get("server_process", PROGRESS_NORMAL) end)
+	pcall(function()
+		server_process = way_data:get("server_process", PROGRESS_NORMAL)
+	end)
 
 	local enable_battle_state = false
-	pcall(function() enable_battle_state = way_data:get("enable_battle_state", 0) == 1 end)
+	pcall(function()
+		enable_battle_state = way_data:get("enable_battle_state", 0) == 1
+	end)
 	local is_client = false
-	pcall(function() is_client = interact_comp and interact_comp.is_client end)
+	pcall(function()
+		is_client = interact_comp and interact_comp.is_client
+	end)
 
-	if enable_battle_state and not is_client then
+	if enable_battle_state and interact_comp and not is_client then
 		self:_force_transit_interact(entity, cur_status_no, comp_id)
+		return
+	end
+
+	-- Battle-state flying entities without an interact_comp (for example bird 4500190)
+	-- do not expose reward config through the generic C1 direct-result path.
+	-- Use the game's full trigger_active_interact flow so client-side result hooks run.
+	if enable_battle_state and not interact_comp and server_process == PROGRESS_CLIENT_FIRST then
+		self:_debug("battle-state CLIENT_FIRST without interact_comp -> using trigger_active_interact")
+		self:_start_interact_B(entity, cur_status_no, comp_id)
 		return
 	end
 
@@ -646,28 +883,41 @@ end
 
 function AutoLoot:do_scan()
 	local mp = G.main_player
-	if not mp then return false end
+	if not mp then
+		return false
+	end
 	mp:ride_skill_collect_nearby_collections(self.state.entity_radius)
 	local rewards = mp:ride_skill_find_nearest_kill_reward(self.state.entity_radius)
-	if rewards then mp:ride_skill_get_kill_reward(rewards) end
+	if rewards then
+		mp:ride_skill_get_kill_reward(rewards)
+	end
 
 	self:_debug("Scanning nearby entities")
 	local function filter_ent(ent_id, ent)
 		local ent_tag = ent.tag
-		if ent_tag:is_collect() or ent_tag:has_stroke_tag() or (ent.if_kill_reward and ent:if_kill_reward()) then return true end
+		if ent_tag:is_collect() or ent_tag:has_stroke_tag() or (ent.if_kill_reward and ent:if_kill_reward()) then
+			return true
+		end
 		local Serialize = _G.Reg.lib("Serialize")
-		self:_log(string.format("Skipping Entity | id=%s no=%s tag=%s", ent_id, ent.entity_no, Serialize.dump_value(ent_tag)))
+		self:_log(
+			string.format("Skipping Entity | id=%s no=%s tag=%s", ent_id, ent.entity_no, Serialize.dump_value(ent_tag))
+		)
 		return false
 	end
-	local targets = G.space:get_entities_in_range(G.main_player:get_position(), self.state.entity_radius, nil, filter_ent, true)
+	local targets =
+		G.space:get_entities_in_range(G.main_player:get_position(), self.state.entity_radius, nil, filter_ent, true)
 	self:_debug("Total entities in range: " .. tostring(#targets))
 
 	local interact_misc = portable.safe_import("hexm.common.misc.interact_misc")
 	for _, t in pairs(targets) do
 		local Serialize = _G.Reg.lib("Serialize")
 		self:_debug(string.format("Entity | id=%s no=%s tag=%s", t.entity_id, t.entity_no, Serialize.dump_value(t.tag)))
-		local ok, err = pcall(function() self:try_interact_entity(t, interact_misc) end)
-		if not ok then self:_debug("  pcall error: " .. tostring(err)) end
+		local ok, err = pcall(function()
+			self:try_interact_entity(t, interact_misc)
+		end)
+		if not ok then
+			self:_debug("  pcall error: " .. tostring(err))
+		end
 	end
 	return true
 end
@@ -676,7 +926,9 @@ function AutoLoot:stop_timer()
 	if self.state.timer_action then
 		pcall(function()
 			local scene = _G.Reg.lib("Cocos").get_running_scene()
-			if scene then scene:stopAction(self.state.timer_action) end
+			if scene then
+				scene:stopAction(self.state.timer_action)
+			end
 		end)
 		self.state.timer_action = nil
 	end
@@ -685,12 +937,16 @@ end
 function AutoLoot:start_timer()
 	self:stop_timer()
 	local scene = nil
-	pcall(function() scene = _G.Reg.lib("Cocos").get_running_scene() end)
+	pcall(function()
+		scene = _G.Reg.lib("Cocos").get_running_scene()
+	end)
 	if scene then
 		self.state.timer_action = cc.RepeatForever:create(cc.Sequence:create({
 			cc.DelayTime:create(self.state.scan_interval),
 			cc.CallFunc:create(function()
-				if self.state.enabled then self:do_scan() end
+				if self.state.enabled then
+					self:do_scan()
+				end
 			end),
 		}))
 		scene:runAction(self.state.timer_action)
@@ -709,7 +965,14 @@ function AutoLoot:enable()
 		return true
 	end
 	self.state.enabled = true
-	self:_log(string.format("Enabled (mode=%s) — scanning every %ss, radius=%s", self.state.interaction_mode, self.state.scan_interval, self.state.entity_radius))
+	self:_log(
+		string.format(
+			"Enabled (mode=%s) — scanning every %ss, radius=%s",
+			self.state.interaction_mode,
+			self.state.scan_interval,
+			self.state.entity_radius
+		)
+	)
 	self:do_scan()
 	self:start_timer()
 	return true

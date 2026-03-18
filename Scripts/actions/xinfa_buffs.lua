@@ -231,15 +231,29 @@ function XinfaBuffs:_reapply()
 		return
 	end
 
-	-- Snapshot what needs to be re-applied, then clear tracking
+	-- Snapshot what needs to be re-applied
 	local xinfa_ids = {}
 	for xid, rank in pairs(self.state.applied_xinfa_ids) do
 		xinfa_ids[xid] = rank
 	end
+
+	-- Build set of currently active buff_nos on the player
+	local active_set = {}
+	for bid, _ in pairs(self.state.applied_buffs) do
+		if mp:has_buff(bid) then
+			active_set[bid] = true
+		end
+	end
+
+	-- Reset tracking, preserving only still-active buffs
 	self.state.applied_buffs = {}
+	for bid, _ in pairs(active_set) do
+		self.state.applied_buffs[bid] = true
+	end
 	self.state.applied_xinfa_ids = {}
 
 	local total_applied = 0
+	local total_already = 0
 	local total_buffs = 0
 	for xid, rank in pairs(xinfa_ids) do
 		local r = (rank == -1) and nil or rank
@@ -250,7 +264,21 @@ function XinfaBuffs:_reapply()
 		end
 	end
 
-	self:log(string.format("Re-applied xinfa buffs: %d/%d", total_applied, total_buffs))
+	-- Count how many were already active (present in applied_buffs but not newly applied)
+	for bid, _ in pairs(active_set) do
+		if self.state.applied_buffs[bid] then
+			total_already = total_already + 1
+		end
+	end
+
+	self:log(
+		string.format(
+			"Re-applied xinfa buffs: %d applied, %d already active, %d total",
+			total_applied,
+			total_already,
+			total_buffs + total_already
+		)
+	)
 end
 
 function XinfaBuffs:_update_hooks()
