@@ -23,9 +23,33 @@ function Buffs:define_state()
 	}
 end
 
--- No hooks — buff application uses game APIs directly
+-- Hooks to re-apply buffs after map transition / reconnection
 function Buffs:define_hooks()
-	return {}
+	local function _on_transition(self_action)
+		if not self_action.state.active_preset then
+			return
+		end
+		local preset_name = self_action.state.active_preset
+		self_action:log("Buff wipe detected — re-applying preset '" .. preset_name .. "'")
+		_G.Reg.lib("Cocos").delay_call(0.5, function()
+			self_action:_reapply(preset_name)
+		end)
+	end
+
+	return {
+		buff_resync = {
+			spec = "hexm.client.fake_server.entities.player_avatar_members.imp_buff:FakePlayerAvatarMember:_buff_resync_server_buffs",
+			post_exec = function(self_action, args, results, tb)
+				_on_transition(self_action)
+			end,
+		},
+		mode_single_in = {
+			spec = "hexm.client.entities.local.player_avatar_members.imp_buff:PlayerAvatarMember:__mode_single_in_component__",
+			post_exec = function(self_action, args, results, tb)
+				_on_transition(self_action)
+			end,
+		},
+	}
 end
 
 -- ── Helpers ──
@@ -36,6 +60,38 @@ local function _get_combat_action()
 		return mod
 	end
 	return nil
+end
+
+-- ── Persistence ──
+
+function Buffs:_reapply(preset_name)
+	local mp = G.main_player
+	if not mp then
+		self:log("Re-apply skipped — no main player")
+		return
+	end
+	local buffs = PRESETS[preset_name]
+	if not buffs then
+		self:log("Re-apply skipped — unknown preset: " .. tostring(preset_name))
+		return
+	end
+	local applied = 0
+	for _, buff_id in ipairs(buffs) do
+		if self:apply_buff(buff_id) then
+			applied = applied + 1
+		end
+	end
+	self:log(string.format("Re-applied preset '%s': %d/%d", preset_name, applied, #buffs))
+end
+
+function Buffs:_update_hooks()
+	if self.state.active_preset then
+		self:hook("buff_resync")
+		self:hook("mode_single_in")
+	else
+		self:unhook("buff_resync")
+		self:unhook("mode_single_in")
+	end
 end
 
 -- ── Public API ──
@@ -117,6 +173,7 @@ function Buffs:apply_preset(preset_name)
 	end
 
 	self.state.active_preset = preset_name
+	self:_update_hooks()
 	self:log(string.format("Applied preset '%s': %d/%d", preset_name, applied, #buffs))
 	return applied, #buffs
 end
@@ -137,6 +194,7 @@ function Buffs:remove_preset(preset_name)
 	if self.state.active_preset == preset_name then
 		self.state.active_preset = nil
 	end
+	self:_update_hooks()
 
 	self:log(string.format("Removed preset '%s': %d/%d", preset_name, removed, #buffs))
 	return removed, #buffs

@@ -14,7 +14,30 @@ function XinfaBuffs:define_state()
 end
 
 function XinfaBuffs:define_hooks()
-	return {}
+	local function _on_transition(self_action)
+		if not next(self_action.state.applied_xinfa_ids) then
+			return
+		end
+		self_action:log("Buff wipe detected — re-applying xinfa buffs")
+		_G.Reg.lib("Cocos").delay_call(0.5, function()
+			self_action:_reapply()
+		end)
+	end
+
+	return {
+		buff_resync = {
+			spec = "hexm.client.fake_server.entities.player_avatar_members.imp_buff:FakePlayerAvatarMember:_buff_resync_server_buffs",
+			post_exec = function(self_action, args, results, tb)
+				_on_transition(self_action)
+			end,
+		},
+		mode_single_in = {
+			spec = "hexm.client.entities.local.player_avatar_members.imp_buff:PlayerAvatarMember:__mode_single_in_component__",
+			post_exec = function(self_action, args, results, tb)
+				_on_transition(self_action)
+			end,
+		},
+	}
 end
 
 -- ============================================================
@@ -198,6 +221,49 @@ function XinfaBuffs:get_xinfa(xinfa_id)
 end
 
 -- ============================================================
+-- PERSISTENCE
+-- ============================================================
+
+function XinfaBuffs:_reapply()
+	local mp = G.main_player
+	if not mp then
+		self:log("Re-apply skipped — no main player")
+		return
+	end
+
+	-- Snapshot what needs to be re-applied, then clear tracking
+	local xinfa_ids = {}
+	for xid, rank in pairs(self.state.applied_xinfa_ids) do
+		xinfa_ids[xid] = rank
+	end
+	self.state.applied_buffs = {}
+	self.state.applied_xinfa_ids = {}
+
+	local total_applied = 0
+	local total_buffs = 0
+	for xid, rank in pairs(xinfa_ids) do
+		local r = (rank == -1) and nil or rank
+		local ok, applied, count = self:apply(xid, r)
+		if ok then
+			total_applied = total_applied + (applied or 0)
+			total_buffs = total_buffs + (count or 0)
+		end
+	end
+
+	self:log(string.format("Re-applied xinfa buffs: %d/%d", total_applied, total_buffs))
+end
+
+function XinfaBuffs:_update_hooks()
+	if next(self.state.applied_xinfa_ids) then
+		self:hook("buff_resync")
+		self:hook("mode_single_in")
+	else
+		self:unhook("buff_resync")
+		self:unhook("mode_single_in")
+	end
+end
+
+-- ============================================================
 -- BUFF APPLICATION
 -- ============================================================
 
@@ -337,6 +403,7 @@ function XinfaBuffs:apply(xinfa_id, rank)
 	end
 
 	self.state.applied_xinfa_ids[xinfa_id] = rank or -1
+	self:_update_hooks()
 
 	self:log(
 		string.format(
@@ -415,6 +482,7 @@ function XinfaBuffs:remove_applied()
 	end
 	self.state.applied_buffs = {}
 	self.state.applied_xinfa_ids = {}
+	self:_update_hooks()
 	return removed
 end
 
