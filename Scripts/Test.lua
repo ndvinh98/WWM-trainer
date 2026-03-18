@@ -33,83 +33,23 @@ local Reg = _G.Reg
 Logger = Reg.lib("Logger")
 
 -- ============================================================
--- 2) VALIDATE ENVIRONMENT
--- ============================================================
-Logger.log("Checking environment...")
-
-local function validate_environment()
-	local checks = {
-		{
-			name = "G exists",
-			test = function()
-				return G ~= nil
-			end,
-		},
-		{
-			name = "G.main_player exists",
-			test = function()
-				return G and G.main_player ~= nil
-			end,
-		},
-		{
-			name = "cc exists",
-			test = function()
-				return cc ~= nil
-			end,
-		},
-		{
-			name = "cc.Director exists",
-			test = function()
-				return cc and cc.Director ~= nil
-			end,
-		},
-		{
-			name = "Director instance",
-			test = function()
-				return cc.Director:getInstance() ~= nil
-			end,
-		},
-		{
-			name = "Running scene",
-			test = function()
-				return cc.Director:getInstance():getRunningScene() ~= nil
-			end,
-		},
-	}
-
-	for _, check in ipairs(checks) do
-		local ok, result = pcall(check.test)
-		local passed = ok and result
-		Logger.log(check.name .. ": " .. tostring(passed))
-		if not passed then
-			return false, nil, nil
-		end
-	end
-
-	local director = cc.Director:getInstance()
-	local scene = director:getRunningScene()
-	return true, director, scene
-end
-
-local valid, director, scene = validate_environment()
-if not valid then
-	Logger.log("ERROR: Environment validation failed")
-	return
-end
-
--- ============================================================
 -- 3) BYPASS ANTICHEAT
 -- ============================================================
 Logger.log("Bypassing Anticheat...")
 
-local ok, err = pcall(function()
-	local acb = dofile(SCRIPTS_PATH .. "lib\\anticheat_bypass.lua")
-	acb.enable()
-end)
+local acb_existing = Reg.module("actions.anticheat_bypass")
+if acb_existing and acb_existing:is_hooked("drpf_check_can_report") then
+	Logger.log("Anticheat bypass already active, skipping reload")
+else
+	local ok, err = pcall(function()
+		dofile(SCRIPTS_PATH .. "actions\\anticheat_bypass.lua")
+		Reg.module("actions.anticheat_bypass"):enable()
+	end)
 
-if not ok then
-	Logger.log("ERROR: Failed to bypass Anticheat: " .. tostring(err))
-	return
+	if not ok then
+		Logger.log("ERROR: Failed to bypass Anticheat: " .. tostring(err))
+		return
+	end
 end
 
 Logger.log("Script started successfully")

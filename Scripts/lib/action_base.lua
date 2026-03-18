@@ -305,6 +305,7 @@ end
 function ActionBase:log(msg)
 	local logger = _get_logger()
 	if logger then
+		
 		logger.log("[" .. self._name .. "] " .. msg)
 	end
 end

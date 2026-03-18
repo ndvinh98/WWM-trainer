@@ -121,43 +121,68 @@ end
 function Reg.reload_all()
 	local log = _G[_K_LIB].Logger
 	local function _log(msg)
-		if log then log.log("[Reg.reload] " .. msg) end
+		if log then
+			log.log("[Reg.reload] " .. msg)
+		end
 	end
 
-	-- 0. Snapshot active hooks by module/hook name only.
+	-- 0a. Identify reload-protected modules (e.g. anticheat_bypass)
+	local protected = {}
+	for name, st in pairs(_G[_K_STATE]) do
+		if type(st) == "table" and st.reload_protected then
+			protected[name] = true
+			_log("Protected (skipping): " .. name)
+		end
+	end
+
+	-- 0b. Snapshot active hooks for NON-protected modules only
 	local reload_hooks = {}
 	for _, entry in pairs(_G[_K_HOOKS]) do
 		if entry.active and entry.module and entry.hook_name then
-			reload_hooks[entry.module] = reload_hooks[entry.module] or {}
-			reload_hooks[entry.module][entry.hook_name] = true
+			if not protected[entry.module] then
+				reload_hooks[entry.module] = reload_hooks[entry.module] or {}
+				reload_hooks[entry.module][entry.hook_name] = true
+			end
 		end
 	end
 	_G[_K_RELOAD_HOOKS] = reload_hooks
 
-	-- 1. Log and deactivate all active hooks
+	-- 1. Deactivate NON-protected hooks only
 	local HM = _G[_K_LIB].HookManager
 	if HM then
 		for key, entry in pairs(_G[_K_HOOKS]) do
-			if entry.active then
+			if entry.active and not protected[entry.module] then
 				_log("Deactivating: " .. key .. " (spec: " .. tostring(entry.spec) .. ")")
+				HM.deactivate(entry.module, entry.hook_name)
 			end
 		end
-		HM.deactivate_everything()
 	end
 
-	-- 2. Disable all modules (clear is_enabled in persistent state)
+	-- 2. Disable NON-protected modules
 	for name, st in pairs(_G[_K_STATE]) do
-		if type(st) == "table" and st.is_enabled then
+		if type(st) == "table" and st.is_enabled and not protected[name] then
 			_log("Disabling module: " .. name)
 			st.is_enabled = false
 		end
 	end
 
-	-- 3. Clear module instances (re-created when action files are dofile'd)
-	_G[_K_MOD] = {}
+	-- 3. Clear module instances, preserving protected
+	local kept_mods = {}
+	for name, mod in pairs(_G[_K_MOD]) do
+		if protected[name] then
+			kept_mods[name] = mod
+		end
+	end
+	_G[_K_MOD] = kept_mods
 
-	-- 4. Clear hook registrations (originals already restored in step 1)
-	_G[_K_HOOKS] = {}
+	-- 4. Clear hook registrations, preserving protected
+	local kept_hooks = {}
+	for key, entry in pairs(_G[_K_HOOKS]) do
+		if protected[entry.module] then
+			kept_hooks[key] = entry
+		end
+	end
+	_G[_K_HOOKS] = kept_hooks
 
 	_log("Done. Re-dofile action modules to pick up changes.")
 end
@@ -165,7 +190,9 @@ end
 function Reg.restore_reloaded_modules()
 	local log = _G[_K_LIB].Logger
 	local function _log(msg)
-		if log then log.log("[Reg.reload] " .. msg) end
+		if log then
+			log.log("[Reg.reload] " .. msg)
+		end
 	end
 
 	local reload_hooks = _G[_K_RELOAD_HOOKS] or {}
