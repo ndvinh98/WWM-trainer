@@ -1,6 +1,6 @@
 ---
 name: implement
-description: Reusable workflow for implementing new features or fixing bugs in this workspace, with source-guided investigation, minimal-risk edits, and runtime verification through the existing inject/debug path.
+description: TDD-first workflow for implementing features, fixing bugs, and verifying behavior in the live injected game runtime. Strict red-green-refactor cycle with probe-driven API discovery.
 ---
 
 # When To Use
@@ -9,6 +9,7 @@ description: Reusable workflow for implementing new features or fixing bugs in t
 - Fix a bug
 - Extend an existing script/action
 - Add data export or debug tooling
+- Discover unknown game APIs (probe tests)
 - Verify behavior in the live injected runtime
 
 Do not use for pure brainstorming, architecture discussion without code changes, or broad reverse engineering reports.
@@ -16,11 +17,14 @@ Do not use for pure brainstorming, architecture discussion without code changes,
 
 # Core Rules
 
-- Inspect the existing codebase first. Do not design from memory.
-- Reuse existing helpers, loaders, logging, and output paths before adding new ones.
-- Prefer the live runtime source of truth over static guesses.
-- Keep edits local and minimal.
-- Verify the behavior after editing. A code change without runtime confirmation is incomplete if the task is testable.
+1. **Test first, code second.** Write the failing test before the implementation. No exceptions.
+2. **Probe before assuming.** When interacting with unknown game APIs, write a probe test to discover the shape before implementing.
+3. **Inspect the existing codebase first.** Do not design from memory.
+4. **Reuse existing helpers, loaders, logging, and output paths** before adding new ones.
+5. **Prefer live runtime source of truth** over static guesses.
+6. **Keep edits local and minimal.**
+7. **Verify in the live runtime.** A code change without runtime confirmation is incomplete.
+8. **`Server reply: OK` proves nothing.** Always read the log file to confirm success.
 
 
 # Source Priorities
@@ -35,11 +39,192 @@ Use decompiled code to learn patterns before implementing.
 
 ---
 
+# TDD Workflow (Mandatory)
+
+Every implementation task follows this strict cycle. **Do not skip steps.**
+
+## Phase 0: Probe (when touching unknown APIs)
+
+When the task involves game APIs you haven't verified, write a **probe test** first.
+
+### Probe test template
+
+```lua
+-- Scripts/tests/probe_<topic>.lua
+-- Probe: Discover API shape for <target>
+-- Run: dofile('C:/temp/Where Winds Meet/Scripts/tests/probe_<topic>.lua')
+
+pcall(function()
+    local f = io.open("C:/temp/Where Winds Meet/Scripts/logs/probe_<topic>.txt", "w")
+    if f then f:close() end
+end)
+
+_G.print_file = "probe_<topic>.txt"
+
+local function log(msg)
+    print("[PROBE_<TOPIC>] " .. msg)
+end
+
+local function safe(fn, fallback)
+    local ok, val = pcall(fn)
+    if ok then return val end
+    return fallback
+end
+
+-- === PROBE TESTS ===
+-- Test each API method, parameter combination, return shape
+-- Always test: positive case, negative case, edge cases
+
+log(">>> TEST 1: <description>")
+local ok, result = pcall(function() return <api_call> end)
+log(string.format("  result: ok=%s type=%s val=%s", tostring(ok), type(result), tostring(result)))
+
+-- ... more tests ...
+
+log("\n========== PROBE COMPLETE ==========")
+_G.print_file = nil
+```
+
+### Probe rules
+- Output to `Scripts/logs/probe_<topic>.txt` via `_G.print_file`
+- Wrap every call in `pcall()` — probes must never crash
+- Test positive, negative, and edge cases
+- Log types, shapes, and values — not just pass/fail
+- Read the log file after running — `Server reply: OK` means nothing
+
+### Run a probe
+
+```powershell
+.\run_test.ps1 -Probe probe_<topic>
+```
+
+Then **read** `Scripts/logs/probe_<topic>.txt` to learn the API shape.
+
+
+## Phase 1: RED — Write a Failing Test
+
+Before writing any implementation code:
+
+1. Create `Scripts/tests/test_<name>.lua`
+2. Write tests for the expected behavior (minimum 5 — see checklist below)
+3. Register in `run_all.lua` (both `action_files` and `test_suites`)
+4. Run the full test suite — **confirm the new tests FAIL**
+
+```powershell
+.\run_test.ps1 -Suite
+```
+
+### Minimum 5 tests per module (mandatory)
+
+```lua
+local T = dofile("C:\\temp\\Where Winds Meet\\Scripts\\tests\\run_test.lua")
+T.reset()
+
+local Reg = _G.Reg
+local mod = Reg.module("actions.my_module")
+
+-- 1. Module registered
+T.run("module registered", function()
+    T.assert_not_nil(mod, "module")
+end)
+
+-- 2. Is ActionBase subclass
+T.run("is ActionBase subclass", function()
+    T.assert_not_nil(mod.state, "has state")
+    T.assert_not_nil(mod.is_enabled, "has is_enabled method")
+end)
+
+-- 3. State keys correct types
+T.run("state initialized", function()
+    T.assert_type(mod.state.my_flag, "boolean")
+end)
+
+-- 4. Hook lifecycle
+T.run("hook lifecycle", function()
+    mod:hook("my_hook")
+    T.assert_true(mod:is_hooked("my_hook"))
+    mod:unhook("my_hook")
+    T.assert_false(mod:is_hooked("my_hook"))
+end)
+
+-- 5. Enable/disable
+T.run("enable disable", function()
+    mod:enable()
+    T.assert_true(mod:is_enabled())
+    mod:disable()
+    T.assert_false(mod:is_enabled())
+end)
+
+T.summary()
+```
+
+### Test assertion API
+
+| Method | Purpose |
+|--------|---------|
+| `T.run(name, fn)` | Run a named test (pcall-wrapped) |
+| `T.assert_eq(actual, expected, label)` | Equality |
+| `T.assert_true(val, label)` | Boolean true |
+| `T.assert_false(val, label)` | Boolean false |
+| `T.assert_nil(val, label)` | Nil check |
+| `T.assert_not_nil(val, label)` | Non-nil check |
+| `T.assert_type(val, type_str, label)` | Type check |
+| `T.summary()` | Print `=== RESULTS: N passed, M failed ===` |
+| `T.reset()` | Reset counters |
+
+### State testing caveat
+
+Persistent state survives across runs. Use `assert_type(mod.state.key, "type")` instead of `assert_eq(mod.state.key, default_value)` for persistent keys.
+
+
+## Phase 2: GREEN — Implement Minimum Code to Pass
+
+1. Read the target file and related modules
+2. Read decompiled code for API patterns
+3. Write the minimum implementation to make tests pass
+4. Format: `uv run stylua --syntax Lua54 <changed_files>`
+5. Run the full suite — **confirm ALL GREEN**
+
+```powershell
+.\run_test.ps1 -Suite
+```
+
+Then **read** `Scripts/logs/test_results.txt` — look for `ALL GREEN`.
+
+
+## Phase 3: REFACTOR — Clean Up While Green
+
+Only after ALL GREEN:
+- Extract helpers, simplify logic, improve naming
+- Run the full suite after every change — must stay ALL GREEN
+- Do not add features in this phase
+
+
+## Phase 4: VERIFY — Runtime Confirmation
+
+Run the full suite in the live game and confirm:
+
+```powershell
+.\run_test.ps1 -Suite
+```
+
+### Completion checklist
+
+Before closing the task, **every box must be checked**:
+
+- [ ] Test file exists at `Scripts/tests/test_<name>.lua` with ≥5 tests
+- [ ] Test file registered in `run_all.lua` (`action_files` + `test_suites`)
+- [ ] `Scripts/logs/test_results.txt` shows `ALL GREEN`
+- [ ] No banned patterns (see Coding Rules below)
+- [ ] Lua files formatted with `stylua`
+- [ ] Runtime logs in `Scripts/logs/script_debug.txt` confirm execution
+
+
+---
+
 # Architecture Quick Reference
 
 ## Global Registry (`_G.Reg`)
-
-Bootstrap initializes `_G.Reg` with these accessors:
 
 | Need | API | Example |
 |------|-----|---------|
@@ -50,7 +235,7 @@ Bootstrap initializes `_G.Reg` with these accessors:
 | Reload all modules | `_G.Reg.reload_all()` | Deactivates hooks, clears modules, preserves state |
 | Raw namespace table | `_G.Reg._ns(name)` | `_G.Reg._ns("hooks")` — for core lib files only |
 
-**Available libs:** `Constants`, `Logger`, `Serialize`, `Cocos`, `Hooks`, `HookManager`, `ActionBase`, `Utils` (legacy shim)
+**Available libs:** `Constants`, `Logger`, `Serialize`, `Cocos`, `Hooks`, `HookManager`, `ActionBase`
 
 ## ActionBase Pattern
 
@@ -136,6 +321,200 @@ Manual reload of a single module: `Reg.reset_module("actions.name")`
 
 ---
 
+# Runtime Type System
+
+The game engine injects Python-like types into the Lua VM via C++ bindings (`asiocore`). These are **not plain Lua tables** — they have custom metatables, methods, and `type()` returns distinct strings. Mishandling them is the #1 source of runtime crashes.
+
+## type() return values
+
+| `type(x)` returns | What it is | Example source |
+|-------------------|------------|----------------|
+| `"table"` | Plain Lua table | `{}`, `{ a = 1 }` |
+| `"dict"` | Engine dict (map) | `G.datam` rows, `CustomMapType` instances |
+| `"list"` | Engine list (array) | `entity:get_buffs()`, `CustomListType` instances |
+| `"tuple"` | Engine tuple (immutable) | Some return values from engine APIs |
+| `"instance"` | Class instance | Game entities, UI widgets, most game objects |
+| `"class"` | Class definition | The class itself (not an instance) |
+| `"userdata"` | Raw C++ object | Cocos nodes, low-level engine handles |
+
+**Critical:** `type(game_dict)` returns `"dict"`, NOT `"table"`. Code that checks `type(x) == "table"` will miss game containers.
+
+## Constructing custom types
+
+To create engine-compatible dict/list values from plain Lua tables, use `common.classutils`:
+
+```lua
+local ClassUtils = require("common.classutils")
+
+-- Dict from plain table
+local d = ClassUtils.CustomMapType({ key1 = "val1", key2 = 42 })
+
+-- List from plain array
+local lst = ClassUtils.CustomListType({ 1, 2, 3 })
+
+-- Typed variants (auto-convert values)
+local int_list = ClassUtils.CustomIntListType({ 1, 2, 3 })
+local str_map  = ClassUtils.CustomStrMapType({ name = "test" })
+```
+
+### When to construct
+
+The main reason to construct a `CustomMapType` in our code is **preparing data for game RPC calls** — the game engine expects engine-typed dicts, not plain Lua tables.
+
+```lua
+-- Pattern: wrap plain table → to_valid_dict() for RPC
+local ClassUtils = require("common.classutils")
+local bd = ClassUtils.CustomMapType({
+    target_eid = entity.entity_id,
+    way_info = ClassUtils.CustomMapType({ way_no = 1, comp_id = 2 }):to_valid_dict(),
+}):to_valid_dict()
+-- bd is now a plain Lua table with only non-default values, ready for RPC
+```
+
+### How entity initialization works
+
+Game entities use `init_from_dict(bdict)` which calls `_initProperty(data)` internally. The `_initProperty` method iterates the data (using `normal_pairs()` if available, else `pairs()`) and:
+- If a property default is a CustomType class → wraps the value: `self[name] = DefaultClass(value)`
+- If a `VALUE_TYPE` is set → auto-converts via `int()`, `float()`, `str()`
+- Otherwise → assigns directly: `self[name] = value`
+
+You should never call `_initProperty` directly. Use `init_from_dict()` on entities, or construct via `CustomMapType(data)` for standalone dicts.
+
+## Working with dict
+
+Engine dicts behave like Python dicts. Source: `common.classutils.CustomMapType`.
+
+```lua
+-- Access
+local val = d[key]          -- direct index
+local val = d:get(key)      -- safe get (returns nil if missing)
+
+-- Iteration
+for k, v in pairs(d) do end              -- works
+for _, k in ipairs(d:keys()) do end       -- explicit key list
+for _, pair in ipairs(d:items()) do       -- k,v pairs
+    local k, v = pair[1], pair[2]
+end
+
+-- Mutation
+d[key] = value               -- direct set
+d:setdefault(key, default)   -- set only if key absent, returns value
+d:update(other_dict)         -- merge all keys from other into d
+d:pop(key)                   -- remove key and return value
+
+-- Query
+d:keys()                     -- returns list of keys
+d:values()                   -- returns list of values
+d:items()                    -- returns list of {k,v} pairs
+d:contains(key)              -- boolean
+#d                           -- size (calls dsize())
+
+-- Conversion to plain Lua table
+d:to_valid_dict()            -- only modified values (skips defaults) — use for RPC
+d:todict()                   -- all values
+```
+
+## Working with list
+
+Engine lists behave like Python lists. Source: `common.classutils.CustomListType`.
+
+```lua
+-- Access
+local val = lst[1]           -- 1-based index
+#lst                         -- length
+
+-- Iteration
+for i, v in pairs(lst) do end      -- works
+for i = 1, #lst do                 -- index loop works
+    local v = lst[i]
+end
+
+-- Mutation
+lst:append(item)             -- add one item
+lst:extend(other_list)       -- add multiple items (from list or table)
+lst:pop(index)               -- remove by index, returns value
+lst:remove(value)            -- remove first occurrence by value
+lst:clear()                  -- empty the list
+lst[i] = new_value           -- direct index set
+
+-- Query
+lst:contains(item)           -- boolean
+lst:index(item)              -- first index of item (or nil)
+
+-- Conversion to plain Lua table
+lst:tolist()                 -- plain array
+```
+
+## Working with instance / class
+
+```lua
+-- Type checking
+isinstance(obj, SomeClass)   -- like Python isinstance()
+issubclass(child, parent)    -- like Python issubclass()
+hasattr(obj, "method_name")  -- safe attribute check (pcall-wrapped)
+getattr(obj, "name", default) -- safe get with fallback
+
+-- Class name
+obj.__cname__                -- string class name (if available)
+```
+
+## Typed variants
+
+`CustomMapType` and `CustomListType` have typed subclasses with `VALUE_TYPE` that auto-convert values on construction:
+
+| List variant | Map variant | VALUE_TYPE |
+|-------------|-------------|-----------|
+| `CustomIntListType` | `CustomIntMapType` | `"int"` |
+| `CustomFloatListType` | `CustomFloatMapType` | `"float"` |
+| `CustomStrListType` | `CustomStrMapType` | `"str"` |
+
+All are available via `require("common.classutils")`.
+
+## What NOT to do
+
+| Mistake | Why it fails | Do instead |
+|---------|-------------|------------|
+| `table.insert(lst, item)` | Not a plain table | `lst:append(item)` |
+| `table.remove(lst, i)` | Not a plain table | `lst:pop(i)` |
+| `type(d) == "table"` | Returns `"dict"` | Check for both or use `Serialize.normalize()` |
+| `ipairs(lst)` | May not work on engine lists | `pairs(lst)` or index loop |
+| `for k,v in pairs(d) do d[k2]=v2 end` | Mutation during iteration | Build second table, merge after |
+| `next(d)` to check empty | Unreliable on engine types | `#d > 0` or `bool(d)` |
+| Assume `pairs()` order | Engine dicts are unordered | Use `:keys()` + sort if order matters |
+
+## Normalizing for serialization
+
+Before writing game values to files or comparing them, always normalize:
+
+```lua
+local Serialize = _G.Reg.lib("Serialize")
+
+-- Convert any game type → plain Lua tables recursively
+local plain = Serialize.normalize(game_value)
+
+-- Handles: dict→table, list→array, tuple→array,
+-- instance→{__type, __class, ...}, userdata→string, cycle detection
+```
+
+The normalize function handles all type conversions with cycle detection and depth limiting. Prefer this over manual type-switching.
+
+## When to probe
+
+If you encounter a game API return value and aren't sure of its type, **write a probe test**:
+
+```lua
+local val = some_api_call()
+log(string.format("type=%s", type(val)))                    -- dict? list? instance?
+log(string.format("#val=%s", tostring(#val)))               -- length
+log(string.format("has keys=%s", tostring(val.keys ~= nil))) -- dict method?
+log(string.format("has append=%s", tostring(val.append ~= nil))) -- list method?
+```
+
+Never guess — probe it.
+
+
+---
+
 # Coding Rules
 
 ## DO — Required patterns
@@ -151,35 +530,17 @@ Manual reload of a single module: `Reg.reset_module("actions.name")`
 | Access modules via Reg | `_G.Reg.module("actions.combat")` |
 | Inside hooks: `self_action:log()` | `self_action:log("hook fired")` |
 
-## DON'T — Violations will be rejected
+## DON'T — Banned patterns (violations rejected)
 
-| Anti-pattern | Why | Use instead |
-|-------------|-----|-------------|
-| `local function _helper()` for module logic | Can't access `self`, untestable | `function Module:_helper()` |
-| Module-level `local DATA = {...}` tables | Don't survive reload | `define_state()` transient |
-| `require("hexm.module")` | Throws on missing | `portable.safe_import()` |
-| `Logger.log("[Mod] msg")` | Not prefixed, not associated | `self:log("msg")` |
-| `_G.KURO_lib.Serialize` | Hardcoded prefix, breaks if changed | `_G.Reg.lib("Serialize")` |
-| `_G.KURO_state["actions.x"]` | Direct namespace access | `self.state` or `_G.Reg.state()` |
-| `Hooks.hook_method(...)` directly | Bypasses HookManager lifecycle | `define_hooks()` + `self:hook()` |
-| `Utils.safe_import(...)` | Legacy shim, being removed | `portable.safe_import()` |
-| `Utils.get_main_player()` | Legacy shim | `G.main_player` |
-| `Utils.dump_value(...)` | Legacy shim | `_G.Reg.lib("Serialize").dump_value()` |
-
-## Replacement Quick Reference
-
-| Old | New |
-|-----|-----|
-| `Utils.safe_import(path)` | `portable.safe_import(path)` |
-| `Utils.safe_call(label, fn, ...)` | `pcall(fn, ...)` |
-| `Utils.safe_dofile(path)` | `pcall(dofile, path)` |
-| `Utils.get_main_player()` | `G.main_player` |
-| `Utils.dump_value(val)` | `_G.Reg.lib("Serialize").dump_value(val)` |
-| `Utils.init_dict(tbl)` | `require("common.classutils").CustomMapType(tbl):to_valid_dict()` |
-| `Utils.init_list(tbl)` | `require("common.classutils").CustomListType(tbl)` |
-| `Utils.create_empty_proxy()` | `_G.Reg.lib("Cocos").create_empty_proxy()` |
-| `Utils.delay_call(delay, fn)` | `_G.Reg.lib("Cocos").delay_call(delay, fn)` |
-| `Reg.get("X")` / `Reg.set("X", v)` | `_G.Reg.lib("X")` or `_G.Reg.module("X")` |
+| Banned | Use instead |
+|--------|-------------|
+| `local function _helper()` for module logic | `function Module:_helper()` |
+| Module-level `local DATA = {...}` tables | `define_state()` transient |
+| `require("hexm.module")` | `portable.safe_import()` |
+| `Logger.log("[Mod] msg")` | `self:log("msg")` |
+| `_G.KURO_*` (outside bootstrap.lua) | `_G.Reg` API |
+| `Hooks.hook_method(...)` directly | `define_hooks()` + `self:hook()` |
+| `Utils.*` (entire module is banned) | See table below |
 
 ## File Structure Order
 
@@ -193,71 +554,38 @@ Every action file MUST follow this order:
 7. Public API methods
 8. `return MyModule:new()`
 
-## Exception: local functions
-
-Local functions are OK only for:
-- Pure utility closures (max 3 lines, no state access): `local function _apply_buff(id) ... end`
-- Constants that aren't methods: `local BUFF_ID = 70063`
+Local functions OK only for: pure utility closures (max 3 lines, no state access) and scalar constants.
 
 
 ---
 
-# Standard Workflow
+# Implementation Guidelines
 
-## 1. Read Before Editing
+## Read Before Editing
 
 Start with:
 - the target file you will edit
 - matching action/controller/helper modules
 - decompiled usage sites for the same API or data path
 
-Look for:
-- existing naming/style
-- output/logging conventions
-- how runtime data is normally accessed
+## Follow Existing Runtime Patterns
 
-## 2. Follow Existing Runtime Patterns
-
-Before adding logic, search for current usage of the same runtime objects.
-
-- For game data tables: `G.datam.<table>:get(key)`, `:keys()`, `:values()`, `:items()`
-- For text fields: `LOC(...)`, `TextByTable(...)`, or `G.locale_manager:get_locale_text_by_tid(...)`
-- For dumps/exports: reuse `Constants`, `Logger`, and existing output directories
+- Game data tables: `G.datam.<table>:get(key)`, `:keys()`, `:values()`, `:items()`
+- Text fields: `LOC(...)`, `TextByTable(...)`, or `G.locale_manager:get_locale_text_by_tid(...)`
+- Dumps/exports: reuse `Constants`, `Logger`, and existing output directories
 - Custom data types: `list`, `dict`, `instance`, `class`, `tuple`, `userdata`
 
 Do not invent access patterns when the game already has one.
 
-## 3. Implement Conservatively
+## Handle Runtime Data Defensively
 
-Prefer:
-- additive public functions over broad rewrites
-- helper functions for normalization/serialization
-- output under existing dump/data/log roots
-- explicit error logging
-
-Avoid:
-- mutating unrelated code paths
-- changing behavior outside the requested scope
-- assuming plain Lua tables when runtime may return custom types
-
-## 4. Handle Runtime Data Defensively
-
-Runtime values may be: plain Lua values, `table`, `list`, `dict`, `instance`, userdata-backed objects.
-
-- Normalize values before serializing: `_G.Reg.lib("Serialize").normalize(val)`
-- Use `:todict()` / `:tolist()` when available
-- Use `:keys()` + `:get()` when iteration is supported
+- **Always check `type(val)`** — game values return `"dict"`, `"list"`, `"instance"`, not `"table"` (see Runtime Type System section)
+- Normalize before serializing: `_G.Reg.lib("Serialize").normalize(val)`
+- Use type-appropriate methods: `:keys()/:get()` for dict, `:append()/:tolist()` for list
 - Wrap risky calls in `pcall(...)`
-- Do not mutate a table while iterating it with `pairs(...)`
+- Do not mutate a container while iterating with `pairs(...)`
 
-## 5. Localize Meaningful Text
-
-- Prefer the same path the game uses
-- For TID-like numeric values: `G.locale_manager:get_locale_text_by_tid(tid, tostring(tid))`
-- Keep both raw field value and translated `_text` companion when useful
-- Do not blindly translate every numeric field
-
-## 6. Log Progress and Failures
+## Log Progress and Failures
 
 Log target: `Scripts/logs/script_debug.txt`
 
@@ -266,105 +594,14 @@ Log: start of operation, progress for long-running loops, final success/error, o
 
 ---
 
-# Testing Requirements
-
-## Minimum 5 checks per module (R11)
-
-```lua
--- 1. Module registered
-T.assert_not_nil(Reg.module("actions.my_module"))
--- 2. Is ActionBase subclass
-T.assert_not_nil(mod.state)
-T.assert_not_nil(mod.is_enabled)
--- 3. State keys correct types
-T.assert_type(mod.state.my_flag, "boolean")
--- 4. Hook lifecycle
-mod:hook("my_hook"); T.assert_true(mod:is_hooked("my_hook"))
-mod:unhook("my_hook"); T.assert_false(mod:is_hooked("my_hook"))
--- 5. Enable/disable
-mod:enable(); T.assert_true(mod:is_enabled())
-mod:disable(); T.assert_false(mod:is_enabled())
-```
-
-## Test file naming
-
-- Action module: `Scripts/tests/test_<name>.lua`
-- Add to `run_all.lua`: both `action_files` and `test_suites` tables
-
-## Run full suite after every change
-
-```powershell
-& "C:\temp\Where Winds Meet\.venv\Scripts\python.exe" "C:\temp\Where Winds Meet\Scripts\inject\debug.py" "dofile('C:/temp/Where Winds Meet/Scripts/tests/run_all.lua')"
-```
-Check results: `Scripts/logs/test_results.txt`
-
-## Formatting
-
-Format Lua edits before verification:
-
-```powershell
-uv run stylua --syntax Lua54 <files...>
-```
-
-Prefer formatting only the files you changed.
-
-## State testing caveat
-
-Persistent state survives across runs. Test with `assert_type(mod.state.key, "type")` instead of `assert_eq(mod.state.key, default_value)` for persistent keys.
-
-
----
-
-# Runtime Verification
-
-## Injection path
-
-```powershell
-& "C:\temp\Where Winds Meet\.venv\Scripts\python.exe" "C:\temp\Where Winds Meet\Scripts\inject\debug.py" "dofile('C:/temp/Where Winds Meet/Scripts/tests/run_all.lua')"
-```
-
-**Critical:** Use forward slashes in Lua strings sent via pipe. Backslashes cause ERRSYNTAX in `lua_load`.
-
-Check:
-- `Scripts/logs/test_results.txt` — test results
-- `Scripts/logs/script_debug.txt` — runtime logs
-
-## Test Confirmation Checklist
-
-Before closing the task:
-- [ ] Edited Lua file loads without syntax errors
-- [ ] New public entry point is callable
-- [ ] Runtime logs show the code path executed
-- [ ] Test suite: ALL GREEN (all suites pass, all modules load)
-- [ ] No `_G.KURO_*` direct access outside bootstrap.lua
-- [ ] No `Utils.*` calls in migrated code
-- [ ] No bare `require()` for game modules
-
-
----
-
 # Common Pitfalls
 
-## Syntax mistakes from variable names
-Do not trust that a quick local rename is harmless. Re-load the file after edits. A parse error can survive until runtime injection.
-
-## Runtime container assumptions
-Do not assume `G.datam` rows are plain tables. They often require normalization via `Serialize.normalize()`.
-
-## Table mutation during iteration
-Do not add keys to the same table while iterating it with `pairs(...)`. Build a second table, then merge.
-
-## Static cache vs live runtime
-Static dumped JSON is useful for shape discovery, but implementation should prefer live runtime data when the feature runs in-game.
-
-## Unverified success
-`Server reply: OK` only confirms the pipe call was accepted. It does not prove the Lua task succeeded. Always inspect the log and output artifacts.
-
-## Hardcoded prefix
-Never write `_G.KURO_*` in any file except `bootstrap.lua`. The prefix is configurable via `Constants.GLOBAL_PREFIX`. Use `_G.Reg` API instead.
-
-## Stale module references after reload
-When bootstrap is re-dofile'd, old module instances in `_G.Reg._ns("modules")` are cleared. Any code holding a stale reference to a module must re-fetch via `_G.Reg.module("name")`.
-
-## Hook callbacks: self vs self_action
-In `define_hooks()` callbacks, the first parameter is `self_action` (your module instance), NOT `self`. Use `self_action:log()`, `self_action.state`, etc.
+| Pitfall | Prevention |
+|---------|------------|
+| Syntax mistakes from variable names | Re-load the file after edits. Parse errors survive until injection. |
+| Runtime container assumptions | Don't assume `G.datam` rows are plain tables. Use `Serialize.normalize()`. |
+| Table mutation during iteration | Build a second table, then merge. |
+| Static cache vs live runtime | Static JSON for shape discovery only. Implementation must use live data. |
+| Unverified success | `Server reply: OK` only means pipe accepted. **Read the log file.** |
+| Stale module references after reload | Re-fetch via `_G.Reg.module("name")` after reload. |
+| Hook callbacks: self vs self_action | First param in `define_hooks()` callbacks is `self_action`, not `self`. |
