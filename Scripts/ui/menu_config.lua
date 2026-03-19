@@ -148,6 +148,21 @@ MenuConfig.TABS = {
 				label = "Recover",
 				action = MenuController and MenuController.handle_recover,
 			},
+			{
+				id = "unrestrict_skills",
+				type = "toggle",
+				label = "Unrestrict Skills",
+				on_action = function()
+					if MenuController then
+						MenuController.handle_unrestrict_skills(true)
+					end
+				end,
+				off_action = function()
+					if MenuController then
+						MenuController.handle_unrestrict_skills(false)
+					end
+				end,
+			},
 		},
 	},
 	-- ========================================

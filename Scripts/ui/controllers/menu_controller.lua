@@ -135,6 +135,14 @@ function MenuController.handle_recover()
 	end
 end
 
+function MenuController.handle_unrestrict_skills(enabled)
+	local SkillUnrestrict = get_action("skill_unrestrict")
+	if not SkillUnrestrict then
+		return
+	end
+	SkillUnrestrict:set_unrestrict_skills(enabled)
+end
+
 -- ============================================================
 -- WORLD TAB HANDLERS
 -- ============================================================
