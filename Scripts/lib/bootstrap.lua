@@ -44,7 +44,7 @@ local _NS_KEYS = {
 	modules = _K_MOD,
 	state = _K_STATE,
 	hooks = _K_HOOKS,
-	reload_hooks = _K_RELOAD_HOOKS,
+	reload_hooks = _K_RELOAD_HOOKS
 }
 
 function Reg._ns(name)
@@ -321,7 +321,7 @@ end
 -- ============================================================
 -- REDIRECT PRINT TO LOGGER
 -- ============================================================
-_G.print_file = "sprint.txt"
+_G.print_file = "print.txt"
 _G.print = function(...)
 	local n = select("#", ...)
 	if n > 0 then
@@ -348,5 +348,5 @@ end
 return {
 	Reg = Reg,
 	Constants = Constants,
-	Logger = Logger,
+	Logger = Logger
 }

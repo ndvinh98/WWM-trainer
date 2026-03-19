@@ -31,7 +31,8 @@ if not ok then
 end
 local Reg = _G.Reg
 Logger = Reg.lib("Logger")
-
+local director = cc.Director:getInstance()
+local scene = director:getRunningScene()
 -- ============================================================
 -- 3) BYPASS ANTICHEAT
 -- ============================================================

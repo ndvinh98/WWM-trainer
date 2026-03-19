@@ -35,7 +35,7 @@ function ActionBase:extend(name)
 	if not name then
 		error("ActionBase:extend() requires a name, e.g. 'actions.combat'")
 	end
-	local cls = setmetatable({}, { __index = self })
+	local cls = setmetatable({}, {__index = self})
 	cls.__index = cls
 	cls._name = name
 	return cls
@@ -46,7 +46,7 @@ end
 -- ────────────────────────────────────────────────────────────
 
 function ActionBase:new()
-	local instance = setmetatable({}, { __index = self })
+	local instance = setmetatable({}, {__index = self})
 	instance._name = self._name
 
 	-- 1. Initialize state (persistent survives reload, transient resets)
@@ -74,16 +74,19 @@ function ActionBase:define_hooks()
 end
 
 function ActionBase:define_state()
-	return { persistent = {}, transient = {} }
+	return {persistent = {}, transient = {}}
 end
 
 -- ────────────────────────────────────────────────────────────
 -- OPTIONAL: subclass can override
 -- ────────────────────────────────────────────────────────────
 
-function ActionBase:on_enable() end
-function ActionBase:on_disable() end
-function ActionBase:on_reload() end
+function ActionBase:on_enable()
+end
+function ActionBase:on_disable()
+end
+function ActionBase:on_reload()
+end
 
 -- ────────────────────────────────────────────────────────────
 -- State management (INTERNAL)
@@ -209,7 +212,7 @@ function ActionBase:hook_many(...)
 		return 0
 	end
 	local count = 0
-	for _, name in ipairs({ ... }) do
+	for _, name in ipairs({...}) do
 		local ok = hm.activate(self._name, name, self)
 		if ok then
 			count = count + 1
@@ -305,7 +308,9 @@ end
 function ActionBase:log(msg)
 	local logger = _get_logger()
 	if logger then
-		
+		if not self.state.log_enabled then
+			return
+		end
 		logger.log("[" .. self._name .. "] " .. msg)
 	end
 end
