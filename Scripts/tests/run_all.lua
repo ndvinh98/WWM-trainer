@@ -70,6 +70,7 @@ local action_files = {
 	"dump_bytecode",
 	"dump_static_data",
 	"anticheat_bypass",
+	"skill_unrestrict",
 }
 
 local function load_action_modules()
@@ -121,6 +122,7 @@ local test_suites = {
 	"test_dump_static_data",
 	"test_trace",
 	"test_anticheat_bypass",
+	"test_skill_unrestrict",
 }
 
 local suite_ok, suite_fail = 0, 0
