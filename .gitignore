@@ -18,3 +18,5 @@ __pycache__/
 source_decompiled/
 DirObject/
 unluac/
+superpowers/
+.agent/
