@@ -14,13 +14,17 @@ T.run("weapon_skins: apply accepts raw item_no", function()
 	T.assert_not_nil(weapon_skins)
 	T.assert_not_nil(weapon_skins.apply, "has apply method")
 	-- Should not error when called with a number (even if skin doesn't exist in-game)
-	local ok, err = pcall(function() weapon_skins:apply(99999) end)
+	local ok, err = pcall(function()
+		weapon_skins:apply(99999)
+	end)
 	T.assert_true(ok, "apply(number) should not throw: " .. tostring(err))
 end)
 
 T.run("weapon_skins: apply accepts item object", function()
 	local item = { item_no = 88888, name = "Test Weapon" }
-	local ok, err = pcall(function() weapon_skins:apply(item) end)
+	local ok, err = pcall(function()
+		weapon_skins:apply(item)
+	end)
 	T.assert_true(ok, "apply(item_obj) should not throw: " .. tostring(err))
 end)
 
@@ -34,7 +38,11 @@ end)
 
 T.run("weapon_skins: disable clears state", function()
 	weapon_skins:disable()
-	T.assert_eq(#weapon_skins.state.item_nos, 0, "item_nos cleared after disable")
+	local count = 0
+	for _ in pairs(weapon_skins.state.skin_map) do
+		count = count + 1
+	end
+	T.assert_eq(count, 0, "skin_map cleared after disable")
 	T.assert_false(weapon_skins:is_hooked("create_weapon"), "hook removed after disable")
 end)
 
@@ -63,13 +71,17 @@ local suit_skins = Reg.module("actions.suit_skins")
 
 T.run("suit_skins: apply accepts raw suit_no", function()
 	T.assert_not_nil(suit_skins)
-	local ok, err = pcall(function() suit_skins:apply(99999) end)
+	local ok, err = pcall(function()
+		suit_skins:apply(99999)
+	end)
 	T.assert_true(ok, "apply(number) should not throw: " .. tostring(err))
 end)
 
 T.run("suit_skins: apply accepts item object", function()
 	local item = { suit_no = 88888, name = "Test Suit" }
-	local ok, err = pcall(function() suit_skins:apply(item) end)
+	local ok, err = pcall(function()
+		suit_skins:apply(item)
+	end)
 	T.assert_true(ok, "apply(item_obj) should not throw: " .. tostring(err))
 end)
 

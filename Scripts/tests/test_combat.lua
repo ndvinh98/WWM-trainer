@@ -44,20 +44,24 @@ end)
 
 T.run("set_no_cooldown hooks correctly", function()
 	mod:set_no_cooldown(true)
-	T.assert_true(mod:is_hooked("no_cd_update"), "no_cd_update hooked")
 	T.assert_true(mod:is_hooked("no_cd_check"), "no_cd_check hooked")
+	T.assert_true(mod:is_hooked("no_cd_update"), "no_cd_update hooked")
 	T.assert_true(mod.state.no_cooldown, "state is true")
 
 	mod:set_no_cooldown(false)
-	T.assert_false(mod:is_hooked("no_cd_update"), "no_cd_update unhooked")
 	T.assert_false(mod:is_hooked("no_cd_check"), "no_cd_check unhooked")
+	T.assert_false(mod:is_hooked("no_cd_update"), "no_cd_update unhooked")
 	T.assert_false(mod.state.no_cooldown, "state is false")
+end)
+
+T.run("set_no_cooldown no stale rawset state", function()
+	T.assert_nil(mod.state._no_cd_original, "no _no_cd_original in state")
 end)
 
 T.run("set_god_mode sets state correctly", function()
 	mod:set_god_mode(true)
 	T.assert_true(mod.state.god_mode)
-	
+
 	mod:set_god_mode(false)
 	T.assert_false(mod.state.god_mode)
 end)
@@ -65,7 +69,7 @@ end)
 T.run("set_npc_blind sets state correctly", function()
 	mod:set_npc_blind(true)
 	T.assert_true(mod.state.npc_blind)
-	
+
 	mod:set_npc_blind(false)
 	T.assert_false(mod.state.npc_blind)
 end)
@@ -75,12 +79,12 @@ T.run("multiple features can be enabled together", function()
 	mod:set_infinite_stamina(true)
 	mod:set_instant_charge(true)
 	mod:set_no_cooldown(true)
-	
+
 	T.assert_true(mod.state.god_mode)
 	T.assert_true(mod.state.infinite_stamina)
 	T.assert_true(mod.state.instant_charge)
 	T.assert_true(mod.state.no_cooldown)
-	
+
 	mod:set_god_mode(false)
 	mod:set_infinite_stamina(false)
 	mod:set_instant_charge(false)
@@ -94,8 +98,8 @@ T.run("disable unhooks all", function()
 	mod:disable()
 	T.assert_false(mod:is_hooked("stamina_skill_cost"))
 	T.assert_false(mod:is_hooked("charge_start"))
-	T.assert_false(mod:is_hooked("no_cd_update"))
-	T.assert_false(mod:is_hooked("no_cd_check"))
+	T.assert_false(mod:is_hooked("no_cd_check"), "no_cd_check cleaned up")
+	T.assert_false(mod:is_hooked("no_cd_update"), "no_cd_update cleaned up")
 	T.assert_false(mod:is_enabled())
 end)
 
@@ -106,7 +110,5 @@ T.run("enable and disable toggle correctly", function()
 	mod:disable()
 	T.assert_false(mod:is_enabled())
 end)
-
-
 
 T.summary()

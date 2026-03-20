@@ -331,7 +331,7 @@ function MenuController.handle_bow_skin()
 		type = "single",
 		action = "weapon_skins",
 		data_fn = "get_bow_list",
-		apply_fn = "apply",
+		apply_fn = "apply_bow",
 		id_fn = function(item)
 			return item.item_no
 		end,

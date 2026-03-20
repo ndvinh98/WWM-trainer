@@ -32,7 +32,7 @@ function WeaponSkins:define_state()
 	return {
 		persistent = {
 			is_enabled = false,
-			item_nos = {}, -- List of weapon skin item_nos to persistently apply
+			skin_map = {}, -- Slot-keyed map: {primary=item_no, secondary=item_no, bow=item_no}
 			weapon_data = nil, -- Generated weapon data cache
 			weapon_skin_list = nil,
 		},
@@ -52,8 +52,9 @@ function WeaponSkins:define_hooks()
 						scene:runAction(cc.Sequence:create({
 							cc.DelayTime:create(0.2),
 							cc.CallFunc:create(function()
-								for _, skin_no in ipairs(action.state.item_nos) do
-									action:apply(skin_no)
+								for slot, skin_no in pairs(action.state.skin_map) do
+									action:log("Re-applying slot=" .. slot .. " skin=" .. tostring(skin_no))
+									action:apply(skin_no, slot)
 								end
 							end),
 						}))
@@ -272,42 +273,33 @@ end
 -- ============================================================
 function WeaponSkins:disable()
 	self:unhook("create_weapon")
-	self.state.item_nos = {}
+	self.state.skin_map = {}
 end
 
-function WeaponSkins:apply(item_no_or_item)
+function WeaponSkins:apply(item_no_or_item, slot)
 	-- Accept either raw item_no or item object from SelectorFactory
 	local item_no = item_no_or_item
 	if type(item_no_or_item) == "table" then
 		item_no = item_no_or_item.item_no
 	end
 
+	item_no = tonumber(item_no)
+	if not item_no then
+		return false, "Invalid item_no"
+	end
+
+	-- Default slot if not provided
+	slot = slot or "primary"
+
 	self:hook("create_weapon")
 
-	-- Check if this item_no is already in the list
-	local already_added = false
-	for _, existing_item_no in ipairs(self.state.item_nos) do
-		if existing_item_no == item_no then
-			already_added = true
-			break
-		end
-	end
-
-	if not already_added then
-		table.insert(self.state.item_nos, item_no)
-		self:log("Added weapon skin to persistent list: " .. item_no)
-	else
-		self:log("Weapon skin already in persistent list: " .. item_no)
-	end
+	-- Store in slot-keyed map (replaces any existing skin in this slot)
+	self.state.skin_map[slot] = item_no
+	self:log("Set weapon skin slot=" .. slot .. " item_no=" .. item_no)
 
 	local mp = G.main_player
 	if not mp then
 		return false, "No main player"
-	end
-
-	item_no = tonumber(item_no)
-	if not item_no then
-		return false, "Invalid item_no"
 	end
 
 	self:log("Applying weapon skin: " .. item_no)
@@ -338,12 +330,20 @@ end
 
 function WeaponSkins:apply_dual(left_weapon, right_weapon)
 	if left_weapon then
-		self:apply(left_weapon)
+		self:apply(left_weapon, "primary")
 	end
 	if right_weapon then
-		self:apply(right_weapon)
+		self:apply(right_weapon, "secondary")
 	end
 	return true
+end
+
+function WeaponSkins:get_skin_map()
+	return self.state.skin_map or {}
+end
+
+function WeaponSkins:apply_bow(item_no_or_item)
+	return self:apply(item_no_or_item, "bow")
 end
 
 return WeaponSkins:new()
