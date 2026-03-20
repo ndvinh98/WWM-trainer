@@ -39,6 +39,25 @@ Use decompiled code to learn patterns before implementing.
 
 ---
 
+# Running Lua in the Game
+
+DLL injection is handled by the user. Once injected, send Lua code via `debug.py`:
+
+```powershell
+cd 'C:\temp\Where Winds Meet'
+
+# Run a single Lua expression
+& ".venv\Scripts\python.exe" Scripts\inject\debug.py "print('hello')"
+
+# Run a Lua file (dofile)
+& ".venv\Scripts\python.exe" Scripts\inject\debug.py "dofile('C:/temp/Where Winds Meet/Scripts/tests/run_all.lua')"
+```
+
+**Important:** `Server reply: OK` only means the pipe accepted the message. Always **read the log file** to confirm actual success.
+
+
+---
+
 # TDD Workflow (Mandatory)
 
 Every implementation task follows this strict cycle. **Do not skip steps.**
@@ -95,10 +114,11 @@ _G.print_file = nil
 ### Run a probe
 
 ```powershell
-.\run_test.ps1 -Probe probe_<topic>
+cd 'C:\temp\Where Winds Meet'
+& ".venv\Scripts\python.exe" Scripts\inject\debug.py "dofile('C:/temp/Where Winds Meet/Scripts/tests/probe_<topic>.lua')"
 ```
 
-Then **read** `Scripts/logs/probe_<topic>.txt` to learn the API shape.
+Then **read** `Scripts/logs/probe_<topic>.txt` to learn the API shape — `Server reply: OK` proves nothing.
 
 
 ## Phase 1: RED — Write a Failing Test
@@ -111,8 +131,12 @@ Before writing any implementation code:
 4. Run the full test suite — **confirm the new tests FAIL**
 
 ```powershell
-.\run_test.ps1 -Suite
+cd 'C:\temp\Where Winds Meet'
+& ".venv\Scripts\python.exe" Scripts\inject\debug.py "dofile('C:/temp/Where Winds Meet/Scripts/tests/run_all.lua')"
 ```
+
+Then **read** `Scripts/logs/test_results.txt` — the new tests should show as FAIL.
+
 
 ### Minimum 5 tests per module (mandatory)
 
@@ -186,7 +210,8 @@ Persistent state survives across runs. Use `assert_type(mod.state.key, "type")` 
 5. Run the full suite — **confirm ALL GREEN**
 
 ```powershell
-.\run_test.ps1 -Suite
+cd 'C:\temp\Where Winds Meet'
+& ".venv\Scripts\python.exe" Scripts\inject\debug.py "dofile('C:/temp/Where Winds Meet/Scripts/tests/run_all.lua')"
 ```
 
 Then **read** `Scripts/logs/test_results.txt` — look for `ALL GREEN`.
@@ -205,8 +230,13 @@ Only after ALL GREEN:
 Run the full suite in the live game and confirm:
 
 ```powershell
-.\run_test.ps1 -Suite
+cd 'C:\temp\Where Winds Meet'
+& ".venv\Scripts\python.exe" Scripts\inject\debug.py "dofile('C:/temp/Where Winds Meet/Scripts/tests/run_all.lua')"
 ```
+
+Then **read** `Scripts/logs/test_results.txt` — must show `ALL GREEN`.
+Also **read** `Scripts/logs/script_debug.txt` — confirm runtime log entries from the module.
+
 
 ### Completion checklist
 
