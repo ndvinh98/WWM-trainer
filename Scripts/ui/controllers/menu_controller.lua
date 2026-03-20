@@ -70,6 +70,7 @@ function MenuController.handle_no_cooldown(enabled)
 		return
 	end
 	Combat:set_instant_charge(enabled)
+	Combat:set_no_cooldown(enabled)
 end
 
 function MenuController.handle_invisible(enabled)

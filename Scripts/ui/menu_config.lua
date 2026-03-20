@@ -98,6 +98,21 @@ MenuConfig.TABS = {
 				end,
 			},
 			{
+				id = "no_cooldown",
+				type = "toggle",
+				label = "No Cooldown",
+				on_action = function()
+					if MenuController then
+						MenuController.handle_no_cooldown(true)
+					end
+				end,
+				off_action = function()
+					if MenuController then
+						MenuController.handle_no_cooldown(false)
+					end
+				end,
+			},
+			{
 				id = "invisible",
 				type = "toggle",
 				label = "Invisible",

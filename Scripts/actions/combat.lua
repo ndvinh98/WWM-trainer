@@ -55,6 +55,7 @@ function Combat:define_state()
 			god_mode = false,
 			infinite_stamina = false,
 			instant_charge = false,
+			no_cooldown = false,
 			npc_blind = false,
 		},
 		transient = {},
@@ -93,6 +94,21 @@ function Combat:define_hooks()
 					return original(self_entity, res_id, ...)
 				end
 				return 0
+			end,
+		},
+		-- No cooldown hooks
+		no_cd_update = {
+			spec = "hexm.common.combat.skill_cd:SkillCDBase:update_skill_cd",
+			override_orig_function = true,
+			post_exec = function(self_action, original, self_entity, skill_id, skill_cd, ...)
+				return original(self_entity, skill_id, 0, ...)
+			end,
+		},
+		no_cd_check = {
+			spec = "hexm.common.combat.skill_cd:SkillCDBase:is_skill_in_cd",
+			override_orig_function = true,
+			post_exec = function(self_action, original, ...)
+				return false
 			end,
 		},
 		-- Instant charge hooks
@@ -187,6 +203,25 @@ function Combat:set_instant_charge(enabled)
 	end
 	self.state.instant_charge = enabled
 	self:log("Instant Charge: " .. (enabled and "ON" or "OFF"))
+end
+
+-- ── No Cooldown (debug_consts flag) ──
+
+function Combat:set_no_cooldown(enabled)
+	local debug_consts = portable.safe_import("hexm.common.consts.debug_consts")
+	if debug_consts then
+		debug_consts.SKILL_NO_CD = enabled and true or false
+	end
+	if enabled then
+		pcall(function()
+			local mp = G.main_player
+			if mp and mp.refresh_skill_cds then
+				mp:refresh_skill_cds()
+			end
+		end)
+	end
+	self.state.no_cooldown = enabled
+	self:log("No Cooldown: " .. (enabled and "ON" or "OFF"))
 end
 
 -- ── NPC Blind (flag-stack based, non-hook) ──
