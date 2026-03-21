@@ -221,6 +221,36 @@ MenuConfig.TABS = {
 				label = "Reset Crime",
 				action = MenuController and MenuController.handle_reset_crime,
 			},
+			{
+				id = "pitchpot_auto",
+				type = "toggle",
+				label = "Pitchpot Auto-Play",
+				on_action = function()
+					if MenuController then
+						MenuController.handle_pitchpot_auto(true)
+					end
+				end,
+				off_action = function()
+					if MenuController then
+						MenuController.handle_pitchpot_auto(false)
+					end
+				end,
+			},
+			{
+				id = "rhythm_auto_perfect",
+				type = "toggle",
+				label = "Rhythm Auto-Perfect",
+				on_action = function()
+					if MenuController then
+						MenuController.handle_rhythm_auto_perfect(true)
+					end
+				end,
+				off_action = function()
+					if MenuController then
+						MenuController.handle_rhythm_auto_perfect(false)
+					end
+				end,
+			},
 		},
 	},
 	-- ========================================

@@ -71,6 +71,8 @@ local action_files = {
 	"dump_static_data",
 	"anticheat_bypass",
 	"skill_unrestrict",
+	"pitchpot",
+	"rhythm_game",
 }
 
 local function load_action_modules()
@@ -123,6 +125,8 @@ local test_suites = {
 	"test_trace",
 	"test_anticheat_bypass",
 	"test_skill_unrestrict",
+	"test_pitchpot",
+	"test_rhythm_game",
 }
 
 local suite_ok, suite_fail = 0, 0

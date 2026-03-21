@@ -225,6 +225,22 @@ function MenuController.handle_reset_crime()
 	end
 end
 
+function MenuController.handle_pitchpot_auto(enabled)
+	local Pitchpot = get_action("pitchpot")
+	if not Pitchpot then
+		return
+	end
+	Pitchpot:set_auto_play(enabled)
+end
+
+function MenuController.handle_rhythm_auto_perfect(enabled)
+	local RhythmGame = get_action("rhythm_game")
+	if not RhythmGame then
+		return
+	end
+	RhythmGame:set_auto_perfect(enabled)
+end
+
 -- ============================================================
 -- SKIN TAB HANDLERS
 -- ============================================================
