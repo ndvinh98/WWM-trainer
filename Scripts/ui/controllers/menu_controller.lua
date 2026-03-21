@@ -558,12 +558,16 @@ function MenuController.handle_dump_all_bytecodes(enabled, btn)
 			delay_ms = 50,
 			on_progress = function(current, total, name)
 				if btn and btn.setTitleText then
-					pcall(btn.setTitleText, btn, string.format("● Dump BC: %d/%d", current, total))
+					pcall(function()
+						btn:setTitleText(string.format("● Dump BC: %d/%d", current, total))
+					end)
 				end
 			end,
 			on_complete = function(count, errors)
 				if btn and btn.setTitleText then
-					pcall(btn.setTitleText, btn, "○ Dump All Bytecodes")
+					pcall(function()
+						btn:setTitleText("○ Dump All Bytecodes")
+					end)
 				end
 				_log(string.format("Bytecode dump complete: %d dumped, %d errors", count, errors))
 			end,
@@ -572,7 +576,9 @@ function MenuController.handle_dump_all_bytecodes(enabled, btn)
 		if Dump.stop_dump then
 			pcall(Dump.stop_dump, Dump)
 			if btn and btn.setTitleText then
-				pcall(btn.setTitleText, btn, "○ Dump All Bytecodes")
+				pcall(function()
+					btn:setTitleText("○ Dump All Bytecodes")
+				end)
 			end
 		end
 	end

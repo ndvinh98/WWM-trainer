@@ -8,7 +8,7 @@ local STATE = _G.Reg.state("actions.dump_bytecode.async")
 
 function DumpBytecode:define_state()
 	return {
-		persistent = {},
+		persistent = {log_enabled = true},
 		transient = {
 			_is_running = false,
 		},
@@ -56,7 +56,7 @@ function DumpBytecode:_build_module_list()
 end
 
 function DumpBytecode:get_output_dir()
-	return Constants.LUA_DEBUGGING_ROOT .. "\\bytecodes"
+	return Constants.LUA_DEBUGGING_ROOT
 end
 
 function DumpBytecode:get_output_path_for_module(module_path)
@@ -95,6 +95,7 @@ function DumpBytecode:dump_all_async(options)
 		batch_size = options.batch_size or 5,
 		delay_sec = (options.delay_ms or 50) / 1000,
 		output_dir = output_dir,
+		skip_existing = options.skip_existing ~= false, -- default true
 		action_ref = nil,
 		on_progress = options.on_progress or function() end,
 		on_complete = options.on_complete or function() end,
@@ -130,6 +131,14 @@ function DumpBytecode:dump_all_async(options)
 			current.on_progress(i, current.total, module_name)
 
 			local ok, err = pcall(function()
+				local output_path = FSUtils.get_module_output_path(module_name, current.output_dir, ".luac")
+
+				-- Skip if file already exists on disk
+				if current.skip_existing and output_path and FSUtils.path_exists(output_path) then
+					current.skipped = current.skipped + 1
+					return
+				end
+
 				local loader = engine_searcher(module_name)
 				if type(loader) ~= "function" then
 					current.skipped = current.skipped + 1
@@ -142,7 +151,6 @@ function DumpBytecode:dump_all_async(options)
 					return
 				end
 
-				local output_path = FSUtils.get_module_output_path(module_name, current.output_dir, ".luac")
 				FSUtils.ensure_parent_dir(output_path)
 
 				local file = io.open(output_path, "wb")

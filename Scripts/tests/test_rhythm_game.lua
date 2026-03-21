@@ -59,12 +59,12 @@ T.run("hook defined for auto_perfect_result", function()
 	T.assert_not_nil(hooks.auto_perfect_result.spec, "hook has spec")
 end)
 
--- 9. Hook lifecycle
-T.run("hook lifecycle", function()
-	mod:hook("auto_perfect_result")
-	T.assert_true(mod:is_hooked("auto_perfect_result"), "hooked")
-	mod:unhook("auto_perfect_result")
-	T.assert_false(mod:is_hooked("auto_perfect_result"), "unhooked")
+-- 9. set_auto_perfect sets G.RHYTHM_GAME_AUTO_PLAY flag
+T.run("set_auto_perfect sets game auto_play flag", function()
+	mod:set_auto_perfect(true)
+	T.assert_true(G.RHYTHM_GAME_AUTO_PLAY == true, "G.RHYTHM_GAME_AUTO_PLAY is true")
+	mod:set_auto_perfect(false)
+	T.assert_true(G.RHYTHM_GAME_AUTO_PLAY == nil, "G.RHYTHM_GAME_AUTO_PLAY is nil after disable")
 end)
 
 -- 10. Persistent state survives reload simulation

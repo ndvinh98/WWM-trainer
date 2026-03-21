@@ -389,7 +389,11 @@ MenuConfig.TABS = {
 				id = "dump_all_bytecodes",
 				type = "toggle",
 				label = "Dump All Bytecodes",
-				on_action = MenuController and MenuController.handle_dump_all_bytecodes,
+				on_action = function(btn)
+					if MenuController then
+						MenuController.handle_dump_all_bytecodes(true, btn)
+					end
+				end,
 				off_action = function(btn)
 					if MenuController then
 						MenuController.handle_dump_all_bytecodes(false, btn)

@@ -109,6 +109,23 @@ end
 
 ## Next Steps
 
-1. Write implementation plan for hook-based auto-perfect
-2. Create probe test to verify `note_result` hookability at runtime
-3. Implement `rhythm_game.lua` action module
+1. ~~Write implementation plan for hook-based auto-perfect~~
+2. ~~Create probe test to verify `note_result` hookability at runtime~~
+3. ~~Implement `rhythm_game.lua` action module~~
+
+**COMPLETED** — see walkthrough for final implementation.
+
+### 7. Built-in Auto-Play Flag (Score: 5 — Direct Definition)
+
+**Source:** `dropdown_rhythm_game_player.lua:290` (dumped at runtime)
+
+```lua
+-- In update_miss_check():
+if G.RHYTHM_GAME_AUTO_PLAY and self.use_input and t < self.cur_time then
+    self:_rhythm_game_note_input(track_idx)
+end
+```
+
+The game already has a **built-in auto-play mechanism**. Setting `G.RHYTHM_GAME_AUTO_PLAY = true` (where G = `require("hexm.client.G")`) causes the game to automatically trigger `_rhythm_game_note_input()` for each note when `perfect_t < cur_time`. Combined with the PERFECT scoring hook, this gives full auto-play with perfect score.
+
+> **Critical:** `G` is NOT Lua's `_G`. It's `require("hexm.client.G")` — the game's global object.

@@ -29,17 +29,16 @@ T.run("public API methods exist", function()
 	T.assert_not_nil(dump.get_output_dir, "has get_output_dir")
 end)
 
-T.run("get_output_dir points at dumped bytecodes directory", function()
+T.run("get_output_dir points at dumped directory", function()
 	local dir = dump:get_output_dir()
 	T.assert_eq(type(dir), "string", "returns string")
 	T.assert_true(dir:find("Scripts\\dumped") ~= nil, "uses dumped root")
-	T.assert_true(dir:find("bytecodes") ~= nil, "uses bytecodes leaf")
 end)
 
 T.run("sample decompiled module path maps to bytecode output path", function()
 	local path = dump:get_output_path_for_module("hexm.client.ui.windows.gm.gm_combat.combat_train_action")
 	local expected = Constants.LUA_DEBUGGING_ROOT
-		.. "\\bytecodes\\hexm\\client\\ui\\windows\\gm\\gm_combat\\combat_train_action.luac"
+		.. "\\hexm\\client\\ui\\windows\\gm\\gm_combat\\combat_train_action.luac"
 	T.assert_eq(path, expected, "real module path output")
 end)
 
