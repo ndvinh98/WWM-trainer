@@ -822,7 +822,7 @@ function Menu.create(scene)
 	local function refreshLog()
 	    if not Menu.state.log_widget then return end
 	    if Menu.state.log_collapsed then return end -- skip when collapsed
-	    local content = Menu.read_log_tail(50)
+	    local content = Menu.read_log_tail(200)
 	    if content == lastLogContent then return end -- skip if unchanged
 	    lastLogContent = content
 	    pcall(function()

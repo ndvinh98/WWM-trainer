@@ -98,14 +98,14 @@ function Combat:define_hooks()
 		},
 		-- No cooldown hooks
 		no_cd_update = {
-			spec = "hexm.common.combat.skill_cd:SkillCDBase:update_skill_cd",
+			spec = "hexm.client.fake_server.entities.player_avatar_members.imp_skill_cd:FakePlayerAvatarMember:update_skill_cd",
 			override_orig_function = true,
-			post_exec = function(self_action, original, self_entity, skill_id, skill_cd, ...)
-				return original(self_entity, skill_id, 0, ...)
+			post_exec = function(self_action, original, self_entity, ...)
+				return nil
 			end,
 		},
 		no_cd_check = {
-			spec = "hexm.common.combat.skill_cd:SkillCDBase:is_skill_in_cd",
+			spec = "hexm.client.entities.local.player_avatar_members.imp_skill_cd:PlayerAvatarMember:is_skill_in_cd",
 			override_orig_function = true,
 			post_exec = function(self_action, original, ...)
 				return false
@@ -208,17 +208,18 @@ end
 -- ── No Cooldown (debug_consts flag) ──
 
 function Combat:set_no_cooldown(enabled)
-	local debug_consts = portable.safe_import("hexm.common.consts.debug_consts")
-	if debug_consts then
-		debug_consts.SKILL_NO_CD = enabled and true or false
-	end
 	if enabled then
+		self:hook("no_cd_update")
+		self:hook("no_cd_check")
 		pcall(function()
 			local mp = G.main_player
 			if mp and mp.refresh_skill_cds then
 				mp:refresh_skill_cds()
 			end
 		end)
+	else
+		self:unhook("no_cd_update")
+		self:unhook("no_cd_check")
 	end
 	self.state.no_cooldown = enabled
 	self:log("No Cooldown: " .. (enabled and "ON" or "OFF"))

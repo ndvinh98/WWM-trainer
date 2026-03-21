@@ -19,10 +19,10 @@ end
 
 -- Load action modules: check KURO_modules first, lazy dofile if needed
 local function get_action(name)
-	local mod = Reg.module("actions." .. name)
-	if mod then
-		return mod
-	end
+	-- local mod = Reg.module("actions." .. name)
+	-- if mod then
+	-- 	return mod
+	-- end
 
 	-- Lazy-load: dofile the script, which auto-registers via ActionBase:new()
 	local path = Constants.SCRIPTS_ROOT .. "\\actions\\" .. name .. ".lua"
@@ -474,7 +474,12 @@ function MenuController.handle_spy_function(input, status_cb)
 		pcall(Spy.set_target, Spy, source, func_name)
 	end
 	if Spy.start then
-		pcall(Spy.start, Spy)
+		local ok, err = pcall(Spy.start, Spy)
+		if not ok then
+			_log("Failed to start Spy: " .. tostring(err))
+		else
+			_log("Spy started successfully")
+		end
 	end
 
 	if status_cb then

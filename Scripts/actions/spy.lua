@@ -9,6 +9,7 @@ local Spy = ActionBase:extend("actions.spy")
 local DEFAULT_STACK_START_LEVEL = 3
 local MAX_STACK_DEPTH = 30
 local SPY_HOOK_ID = "spy_wrapper"
+local LOCAL_SCRIPTS_PATH = _G.Reg.lib("Constants").SCRIPTS_ROOT
 
 local debug_getinfo = debug.getinfo
 local debug_getlocal = debug.getlocal
@@ -16,7 +17,9 @@ local string_find = string.find
 
 function Spy:define_state()
 	return {
-		persistent = {},
+		persistent = {
+			log_enabled = true,
+		},
 		transient = {
 			config = {
 				source_substr = "",
@@ -240,6 +243,7 @@ function Spy:_create_spy_handler()
 
 		local src = info.source
 		local func = info.func
+		
 
 		if src:sub(1, 1) == "@" then
 			src = src:sub(2)
@@ -283,11 +287,17 @@ function Spy:_create_spy_handler()
 				spy_self.state.in_hook = false
 				return
 			end
+		else
+			spy_self.state.in_hook = false
+			return
 		end
 
 		local params, class_name, traceback_str
-		if event == "call" or event == "tail call" then
-			params = spy_self:_capture_params(DEFAULT_STACK_START_LEVEL + 1)
+		if event == "call" or event == "tail call"  then
+			local is_local_src = string_find(src, LOCAL_SCRIPTS_PATH, 1, true)
+			if not is_local_src then
+				params = spy_self:_capture_params(DEFAULT_STACK_START_LEVEL + 1)
+			end
 			class_name = spy_self:_class_of_self(DEFAULT_STACK_START_LEVEL + 1)
 			traceback_str = config.capture_stack and spy_self:_capture_traceback(DEFAULT_STACK_START_LEVEL + 1) or nil
 		end
@@ -321,7 +331,7 @@ function Spy:_create_spy_handler()
 					def_line_key = def_line
 				end
 
-				local signature = string.format("%s:%s(%s)%s%s", src, name, params, func_def, class_tag)
+				local signature = string.format("%s:%s(%s)%s%s", src, name, params or "", func_def, class_tag)
 
 				spy_self.state.call_stack[#spy_self.state.call_stack + 1] = {
 					func = func,

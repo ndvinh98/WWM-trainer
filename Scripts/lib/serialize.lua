@@ -178,6 +178,7 @@ Serialize.normalize = _normalize
 function Serialize.dump_value(val, options)
 	options = options or {}
 	local pretty = options.pretty or false
+	local max_depth = options.max_depth or 3
 
 	-- Normalize game types first
 	local normalized = _normalize(val, 0, max_depth, {})
@@ -195,7 +196,6 @@ function Serialize.dump_instance(obj)
 		return Serialize.dump_value(obj)
 	end
 	return inspect(obj, {
-		depth = 3,
 		pretty = true,
 		inspect_instances_deep = true,
 	})
