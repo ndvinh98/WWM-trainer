@@ -125,12 +125,12 @@ local function _normalize(val, depth, max_depth, seen)
 		end)
 		if not ok then
 			pcall(function()
-				for i, v in ipairs(val) do
+				for i, v in pairs(val) do
 					result[i] = _normalize(v, depth + 1, max_depth, seen)
 				end
 			end)
 		end
-		return result
+		return "[" .. table.concat(result, ", ") .. "]"
 	end
 
 	-- instance / class → best-effort extraction
@@ -178,7 +178,7 @@ Serialize.normalize = _normalize
 function Serialize.dump_value(val, options)
 	options = options or {}
 	local pretty = options.pretty or false
-	local max_depth = options.max_depth or 3
+	local max_depth = options.max_depth or 5
 
 	-- Normalize game types first
 	local normalized = _normalize(val, 0, max_depth, {})

@@ -62,6 +62,7 @@ function ActionBase:new()
 	_G.Reg.register_module(instance._name, instance)
 
 	instance:log("Module loaded")
+	
 	return instance
 end
 
@@ -129,6 +130,10 @@ function ActionBase:_init_state()
 	self._transient_keys = {}
 	for k in pairs(transient) do
 		self._transient_keys[k] = true
+	end
+
+	if not self.state.log_enabled then
+		_get_logger():log("[" .. self._name .. "] Log disabled")
 	end
 end
 

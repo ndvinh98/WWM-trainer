@@ -19,20 +19,9 @@ end
 
 -- Load action modules: check KURO_modules first, lazy dofile if needed
 local function get_action(name)
-	-- local mod = Reg.module("actions." .. name)
-	-- if mod then
-	-- 	return mod
-	-- end
-
-	-- Lazy-load: dofile the script, which auto-registers via ActionBase:new()
 	local path = Constants.SCRIPTS_ROOT .. "\\actions\\" .. name .. ".lua"
 	local ok, result = pcall(dofile, path)
 	if ok then
-		-- Check if it registered itself
-		mod = Reg.module("actions." .. name)
-		if mod then
-			return mod
-		end
 		return result -- fallback for non-ActionBase modules
 	end
 	_log("Failed to load action: " .. name .. " - " .. tostring(result))
@@ -239,6 +228,14 @@ function MenuController.handle_rhythm_auto_perfect(enabled)
 		return
 	end
 	RhythmGame:set_auto_perfect(enabled)
+end
+
+function MenuController.handle_target_shoot_auto(enabled)
+	local TargetShoot = get_action("target_shoot")
+	if not TargetShoot then
+		return
+	end
+	TargetShoot:set_auto_play(enabled)
 end
 
 -- ============================================================
