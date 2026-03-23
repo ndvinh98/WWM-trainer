@@ -90,6 +90,7 @@ function Trace:define_state()
 	return {
 		persistent = {
 			output_format = "json",
+			log_enabled = true,
 		},
 		transient = {
 			is_tracing = false,

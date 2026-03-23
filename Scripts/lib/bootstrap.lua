@@ -310,9 +310,9 @@ Reg.set_lib("HookManager", HookManager)
 local ActionBase = dofile(_ROOT .. "\\lib\\action_base.lua")
 Reg.set_lib("ActionBase", ActionBase)
 
--- Clear removed legacy shim entries that may survive across reloads.
-Reg.set_lib("Utils", nil)
-Reg.del("Utils")
+-- Load TypeUtils
+local TypeUtils = dofile(_ROOT .. "\\lib\\type_utils.lua")
+Reg.set_lib("TypeUtils", TypeUtils)
 
 if _is_reload then
 	Reg.restore_reloaded_modules()

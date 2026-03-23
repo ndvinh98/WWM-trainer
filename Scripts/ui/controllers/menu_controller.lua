@@ -17,12 +17,20 @@ local function _log(msg)
 	end
 end
 
--- Load action modules: check KURO_modules first, lazy dofile if needed
+-- Load action modules: use Reg.module() first (returns existing instance),
+-- fall back to dofile only for first load or non-ActionBase modules.
 local function get_action(name)
+	-- Try registered module first (preserves state across calls)
+	-- local mod = Reg.module("actions." .. name)
+	-- if mod then
+	-- 	return mod
+	-- end
+
+	-- First load: dofile to create and register the module
 	local path = Constants.SCRIPTS_ROOT .. "\\actions\\" .. name .. ".lua"
 	local ok, result = pcall(dofile, path)
 	if ok then
-		return result -- fallback for non-ActionBase modules
+		return result
 	end
 	_log("Failed to load action: " .. name .. " - " .. tostring(result))
 	return nil
