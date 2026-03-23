@@ -24,7 +24,7 @@ function ArcheryMaster:_get_yaoyuan_targets(npcs)
 	local seen = {}
 
 	for _, npc in pairs(npcs) do
-		self:log(string.format("Found archery NPC No=%s", tostring(npc.No)))
+		self:log(string.format("Found archery NPC No=%s Serial No=%s", tostring(npc.No), tostring(npc.serial_id)))
 		local npc_no = nil
 		local ok_no, _ = pcall(function()
 			npc_no = npc.No
@@ -49,18 +49,12 @@ function ArcheryMaster:_get_yaoyuan_targets(npcs)
 
 		-- Check for yaoyuan_target
 		local ok_target, target_no = pcall(function()
-			if type(bb_data) == "dict" or type(bb_data) == "table" then
-				if bb_data.get then
-					return bb_data:get("yaoyuan_target")
-				end
-				return bb_data["yaoyuan_target"]
-			end
-			return nil
+			return bb_data.yaoyuan_target
 		end)
 
 		if ok_target and target_no and target_no ~= npc_no then
-			table.insert(targets, { npc_no = npc_no, target_no = target_no })
-			self:log(string.format("Found archery NPC No=%s -> target No=%s", tostring(npc_no), tostring(target_no)))
+			table.insert(targets, { npc_no = npc_no, target_no = target_no, entity_id = npc.id })
+			self:log(string.format("Found archery NPC No=%s -> target No=%s entity_id=%s", tostring(npc_no), tostring(target_no), tostring(npc.id)))
 		end
 
 		::continue::
