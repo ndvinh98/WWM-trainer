@@ -41,16 +41,22 @@ Use decompiled code to learn patterns before implementing.
 
 # Running Lua in the Game
 
-DLL injection is handled by the user. Once injected, send Lua code via `debug.py`:
+DLL injection is handled by the user. Once injected, use `Scripts/inject/run.py`:
 
 ```powershell
 cd 'C:\temp\Where Winds Meet'
 
-# Run a single Lua expression
-& ".venv\Scripts\python.exe" Scripts\inject\debug.py "print('hello')"
+# Run all tests → read Scripts/logs/test_results.txt
+& ".venv\Scripts\python.exe" Scripts/inject/run.py test
 
-# Run a Lua file (dofile)
-& ".venv\Scripts\python.exe" Scripts\inject\debug.py "dofile('C:/temp/Where Winds Meet/Scripts/tests/run_all.lua')"
+# Run probe scratch file → read Scripts/logs/probe.txt
+& ".venv\Scripts\python.exe" Scripts/inject/run.py probe
+
+# Run inline Lua (auto-wrapped with pcall + log) → read Scripts/logs/probe.txt
+& ".venv\Scripts\python.exe" Scripts/inject/run.py lua "print(type(G.main_player.some_method))"
+
+# Run arbitrary Lua file (fallback, for special cases only)
+& ".venv\Scripts\python.exe" Scripts/inject/debug.py "dofile('C:/temp/Where Winds Meet/Scripts/path/to/file.lua')"
 ```
 
 **Important:** `Server reply: OK` only means the pipe accepted the message. Always **read the log file** to confirm actual success.
@@ -64,61 +70,57 @@ Every implementation task follows this strict cycle. **Do not skip steps.**
 
 ## Phase 0: Probe (when touching unknown APIs)
 
-When the task involves game APIs you haven't verified, write a **probe test** first.
+When the task involves game APIs you haven't verified, **probe first**. Pick the simplest tier that works.
 
-### Probe test template
+### Tier 1 — Inline probe (1-5 checks, NO file creation)
 
-```lua
--- Scripts/tests/probe_<topic>.lua
--- Probe: Discover API shape for <target>
--- Run: dofile('C:/temp/Where Winds Meet/Scripts/tests/probe_<topic>.lua')
-
-pcall(function()
-    local f = io.open("C:/temp/Where Winds Meet/Scripts/logs/probe_<topic>.txt", "w")
-    if f then f:close() end
-end)
-
-_G.print_file = "probe_<topic>.txt"
-
-local function log(msg)
-    print("[PROBE_<TOPIC>] " .. msg)
-end
-
-local function safe(fn, fallback)
-    local ok, val = pcall(fn)
-    if ok then return val end
-    return fallback
-end
-
--- === PROBE TESTS ===
--- Test each API method, parameter combination, return shape
--- Always test: positive case, negative case, edge cases
-
-log(">>> TEST 1: <description>")
-local ok, result = pcall(function() return <api_call> end)
-log(string.format("  result: ok=%s type=%s val=%s", tostring(ok), type(result), tostring(result)))
-
--- ... more tests ...
-
-log("\n========== PROBE COMPLETE ==========")
-_G.print_file = nil
-```
-
-### Probe rules
-- Output to `Scripts/logs/probe_<topic>.txt` via `_G.print_file`
-- Wrap every call in `pcall()` — probes must never crash
-- Test positive, negative, and edge cases
-- Log types, shapes, and values — not just pass/fail
-- Read the log file after running — `Server reply: OK` means nothing
-
-### Run a probe
+Send inline Lua via `run.py lua`. Output goes to `Scripts/logs/probe.txt`.
 
 ```powershell
-cd 'C:\temp\Where Winds Meet'
-& ".venv\Scripts\python.exe" Scripts\inject\debug.py "dofile('C:/temp/Where Winds Meet/Scripts/tests/probe_<topic>.lua')"
+& ".venv\Scripts\python.exe" Scripts/inject/run.py lua "local m = G.main_player; print('method: '..type(m.some_api)); print('call: '..tostring(m:some_api()))"
 ```
 
-Then **read** `Scripts/logs/probe_<topic>.txt` to learn the API shape — `Server reply: OK` proves nothing.
+Then **read** `Scripts/logs/probe.txt`.
+
+Use for: checking method existence, getting a return type, reading a single value.
+
+### Tier 2 — Scratch-file probe (complex multi-step investigation)
+
+**Overwrite** `Scripts/tests/probe.lua` (one reusable scratch file — NEVER create new `probe_*.lua` files).
+The `probe_runner.lua` wrapper handles all boilerplate (log file clearing, `_G.print_file`, pcall, completion marker).
+
+```lua
+-- Scripts/tests/probe.lua — scratch file, overwrite freely
+-- No boilerplate needed: probe_runner.lua handles logging setup
+
+local function log(msg) print("[PROBE] " .. tostring(msg)) end
+local function safe(fn, fallback)
+    local ok, val = pcall(fn)
+    return ok and val or fallback
+end
+
+log(">>> TEST 1: <description>")
+local result = safe(function() return <api_call> end, nil)
+log(string.format("  type=%s val=%s", type(result), tostring(result)))
+
+-- ... more tests ...
+```
+
+Run:
+
+```powershell
+& ".venv\Scripts\python.exe" Scripts/inject/run.py probe
+```
+
+Then **read** `Scripts/logs/probe.txt` — `Server reply: OK` proves nothing.
+
+### Probe rules
+- **Never create new `probe_<topic>.lua` files** — always overwrite `Scripts/tests/probe.lua`
+- Output always goes to `Scripts/logs/probe.txt` (cleared automatically by `probe_runner.lua`)
+- Wrap risky calls in `pcall()` or use the `safe()` helper — probes must never crash
+- Test positive, negative, and edge cases
+- Log types, shapes, and values — not just pass/fail
+- Read the log file after running
 
 
 ## Phase 1: RED — Write a Failing Test
@@ -131,8 +133,7 @@ Before writing any implementation code:
 4. Run the full test suite — **confirm the new tests FAIL**
 
 ```powershell
-cd 'C:\temp\Where Winds Meet'
-& ".venv\Scripts\python.exe" Scripts\inject\debug.py "dofile('C:/temp/Where Winds Meet/Scripts/tests/run_all.lua')"
+& ".venv\Scripts\python.exe" Scripts/inject/run.py test
 ```
 
 Then **read** `Scripts/logs/test_results.txt` — the new tests should show as FAIL.
@@ -210,8 +211,7 @@ Persistent state survives across runs. Use `assert_type(mod.state.key, "type")` 
 5. Run the full suite — **confirm ALL GREEN**
 
 ```powershell
-cd 'C:\temp\Where Winds Meet'
-& ".venv\Scripts\python.exe" Scripts\inject\debug.py "dofile('C:/temp/Where Winds Meet/Scripts/tests/run_all.lua')"
+& ".venv\Scripts\python.exe" Scripts/inject/run.py test
 ```
 
 Then **read** `Scripts/logs/test_results.txt` — look for `ALL GREEN`.
@@ -230,8 +230,7 @@ Only after ALL GREEN:
 Run the full suite in the live game and confirm:
 
 ```powershell
-cd 'C:\temp\Where Winds Meet'
-& ".venv\Scripts\python.exe" Scripts\inject\debug.py "dofile('C:/temp/Where Winds Meet/Scripts/tests/run_all.lua')"
+& ".venv\Scripts\python.exe" Scripts/inject/run.py test
 ```
 
 Then **read** `Scripts/logs/test_results.txt` — must show `ALL GREEN`.

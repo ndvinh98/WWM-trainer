@@ -238,6 +238,14 @@ function MenuController.handle_target_shoot_auto(enabled)
 	TargetShoot:set_auto_play(enabled)
 end
 
+function MenuController.handle_archery_master()
+	local ArcheryMaster = get_action("archery_master")
+	if not ArcheryMaster then
+		return
+	end
+	ArcheryMaster:execute()
+end
+
 -- ============================================================
 -- SKIN TAB HANDLERS
 -- ============================================================

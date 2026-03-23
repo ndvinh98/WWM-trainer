@@ -222,6 +222,12 @@ MenuConfig.TABS = {
 				action = MenuController and MenuController.handle_reset_crime,
 			},
 			{
+				id = "archery_master",
+				type = "action",
+				label = "Archery Master",
+				action = MenuController and MenuController.handle_archery_master,
+			},
+			{
 				id = "pitchpot_auto",
 				type = "toggle",
 				label = "Pitchpot Auto-Play",

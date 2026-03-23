@@ -67,7 +67,7 @@ Too few → remove one constraint, search by ID, search usage instead of definit
 
 ## Step 4 — Runtime Probe (when applicable)
 
-When static evidence alone is insufficient (Score 3-4), **write a probe test** to confirm behavior at runtime.
+When static evidence alone is insufficient (Score 3-4), **run a probe** to confirm behavior at runtime.
 
 ### When to probe
 
@@ -76,40 +76,26 @@ When static evidence alone is insufficient (Score 3-4), **write a probe test** t
 - Data table structure needs shape confirmation before implementation
 - Hooking target needs export-path verification
 
-### Probe workflow
+### Probe workflow (pick simplest tier — see IMPLEMENT.md Phase 0 for details)
 
-1. Write `Scripts/tests/probe_<topic>.lua` following the probe template (see IMPLEMENT.md Phase 0)
-2. Run: `.\run_test.ps1 -Probe probe_<topic>`
-3. Read: `Scripts/logs/probe_<topic>.txt`
+**Quick check (inline, no file):**
+
+```powershell
+& ".venv\Scripts\python.exe" Scripts/inject/run.py lua "print(type(G.main_player.some_method))"
+```
+
+Then **read** `Scripts/logs/probe.txt`.
+
+**Complex probe (scratch file):**
+
+1. Overwrite `Scripts/tests/probe.lua` with probe code (no boilerplate needed — `probe_runner.lua` handles logging)
+2. Run: `& ".venv\Scripts\python.exe" Scripts/inject/run.py probe`
+3. Read: `Scripts/logs/probe.txt`
 4. Update evidence score based on probe results
 
+**Never create new `probe_<topic>.lua` files** — always reuse the scratch file.
+
 A successful probe elevates evidence from Score 3→5 or Score 4→5. A failed probe demotes to Score 2 (investigate further).
-
-### Probe template (quick reference)
-
-```lua
--- Scripts/tests/probe_<topic>.lua
-pcall(function()
-    local f = io.open("C:/temp/Where Winds Meet/Scripts/logs/probe_<topic>.txt", "w")
-    if f then f:close() end
-end)
-_G.print_file = "probe_<topic>.txt"
-
-local function log(msg) print("[PROBE] " .. msg) end
-local function safe(fn, fallback)
-    local ok, val = pcall(fn)
-    return ok and val or fallback
-end
-
--- Test each method/parameter/return shape
--- Always: positive case, negative case, edge cases
-log(">>> TEST 1: <description>")
-local ok, result = pcall(function() return <api_call> end)
-log(string.format("  ok=%s type=%s val=%s", tostring(ok), type(result), tostring(result)))
-
-log("\n========== PROBE COMPLETE ==========")
-_G.print_file = nil
-```
 
 ## Step 5 — Cross-Source Correlation
 

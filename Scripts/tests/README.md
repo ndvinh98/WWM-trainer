@@ -1,5 +1,12 @@
 ```powershell
-cd 'c:\temp\Where Winds Meet'    
-PS C:\temp\Where Winds Meet> & "C:\temp\Where Winds Meet\.venv\Scripts\python.exe" "C:\temp\Where Winds Meet\Scripts\inject\debug.py" "dofile('C:/temp/Where Winds Meet/Scripts/tests/run_all.lua')"
-Server reply: OK
+cd 'C:\temp\Where Winds Meet'
+
+# Run all tests → Scripts/logs/test_results.txt
+& ".venv\Scripts\python.exe" Scripts/inject/run.py test
+
+# Run probe (scratch file: probe.lua) → Scripts/logs/probe.txt
+& ".venv\Scripts\python.exe" Scripts/inject/run.py probe
+
+# Run inline Lua → Scripts/logs/probe.txt
+& ".venv\Scripts\python.exe" Scripts/inject/run.py lua "print(type(G.main_player.foo))"
 ```
