@@ -17,19 +17,27 @@ end)
 
 T.run("state keys have correct types", function()
 	T.assert_eq(type(autoloot.state.enabled), "boolean", "enabled is boolean")
-	T.assert_eq(type(autoloot.state.interaction_mode), "string", "interaction_mode is string")
 	T.assert_eq(type(autoloot.state.done), "table", "done is table")
 	T.assert_eq(type(autoloot.state.pending), "nil", "pending starts nil")
+	T.assert_eq(type(autoloot.state.entity_radius), "number", "entity_radius is number")
+	T.assert_eq(type(autoloot.state.active_interact_radius), "number", "active_interact_radius is number")
+	T.assert_eq(type(autoloot.state.transit_radius), "number", "transit_radius is number")
+end)
+
+T.run("state defaults are correct", function()
+	T.assert_eq(autoloot.state.entity_radius, 150, "entity_radius=150")
+	T.assert_eq(autoloot.state.active_interact_radius, 20, "active_interact_radius=20")
+	T.assert_eq(autoloot.state.transit_radius, 150, "transit_radius=150")
 end)
 
 T.run("enable/disable lifecycle", function()
 	autoloot:disable()
 	T.assert_false(autoloot.state.enabled)
-	
+
 	autoloot:enable()
 	T.assert_true(autoloot.state.enabled)
 	T.assert_not_nil(autoloot.state.timer_action, "timer started")
-	
+
 	autoloot:disable()
 	T.assert_false(autoloot.state.enabled)
 	T.assert_nil(autoloot.state.timer_action, "timer stopped")
@@ -42,18 +50,24 @@ T.run("is_enabled returns state", function()
 	T.assert_false(autoloot:is_enabled())
 end)
 
-T.run("set_mode changes mode", function()
-	autoloot:set_mode("B")
-	T.assert_eq(autoloot.state.interaction_mode, "B")
-	autoloot:set_mode("A")
-	T.assert_eq(autoloot.state.interaction_mode, "A")
-end)
-
 T.run("reset clears state", function()
 	autoloot.state.done["test"] = true
 	autoloot:reset()
 	T.assert_nil(autoloot.state.done["test"])
 	T.assert_eq(next(autoloot.state.done), nil, "done is empty")
+end)
+
+T.run("no set_mode method (removed)", function()
+	T.assert_nil(autoloot.set_mode, "set_mode should not exist")
+end)
+
+T.run("has required methods", function()
+	T.assert_not_nil(autoloot._start_interact, "has _start_interact")
+	T.assert_not_nil(autoloot._direct_result, "has _direct_result")
+	T.assert_not_nil(autoloot._direct_result_await, "has _direct_result_await")
+	T.assert_not_nil(autoloot._force_transit_comp_status, "has _force_transit_comp_status")
+	T.assert_not_nil(autoloot.try_interact_entity, "has try_interact_entity")
+	T.assert_not_nil(autoloot.do_scan, "has do_scan")
 end)
 
 T.summary()

@@ -73,6 +73,7 @@ local action_files = {
 	"skill_unrestrict",
 	"pitchpot",
 	"rhythm_game",
+	"archery_master",
 }
 
 local function load_action_modules()
@@ -127,6 +128,8 @@ local test_suites = {
 	"test_skill_unrestrict",
 	"test_pitchpot",
 	"test_rhythm_game",
+	"test_target_shoot",
+	"test_archery_master",
 }
 
 local suite_ok, suite_fail = 0, 0
