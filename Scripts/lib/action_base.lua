@@ -133,7 +133,6 @@ function ActionBase:_init_state()
 	end
 
 	if not self.state.log_enabled then
-		_get_logger():log("[" .. self._name .. "] Log disabled")
 	end
 end
 
