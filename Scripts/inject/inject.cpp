@@ -183,6 +183,18 @@ std::string getDynamicChunkName() {
 // Execute Lua code via lua_load + lua_pcall, with logging
 // =================================================================================
 
+// Pop one item from the Lua stack without needing lua_settop.
+// Loads a no-op chunk and calls it with nargs=1, which pops both
+// the loaded function and the top stack item (the one we want gone).
+static void LuaPopOne(void* L) {
+    static const char noop[] = "do end";
+    ReaderData rd = { noop, sizeof(noop) - 1 };
+    int rc = oLua_Load(L, &MyLuaReader, &rd, "=_pop", "t");
+    if (rc == 0) {
+        oLua_Pcall(L, 1, 0, 0, nullptr, nullptr);
+    }
+}
+
 static const char* LuaRetCodeStr(int rc) {
     switch (rc) {
     case 0: return "OK";
@@ -205,16 +217,14 @@ static bool ExecuteLua(void* L, const std::string& code, const char* label) {
     int loadRc = oLua_Load(L, &MyLuaReader, &data, chunkname.c_str(), modeStr.c_str());
     if (loadRc != 0) {
         g_log.log("[%s] lua_load FAILED: rc=%d (%s)", label, loadRc, LuaRetCodeStr(loadRc));
-        // Pop error message from Lua stack to prevent stack leak
-        // lua_settop(L, -2) equivalent: we don't have lua_settop, so use pcall trick
-        // Actually just pop by calling lua_pcall on the error — it's already on stack
-        // Safest: leave it, one slot leak is acceptable for error reporting
+        LuaPopOne(L);  // Pop error message to keep stack balanced
         return false;
     }
 
     int pcallRc = oLua_Pcall(L, 0, 0, 0, nullptr, nullptr);
     if (pcallRc != 0) {
         g_log.log("[%s] lua_pcall FAILED: rc=%d (%s)", label, pcallRc, LuaRetCodeStr(pcallRc));
+        LuaPopOne(L);  // Pop error message to keep stack balanced
         return false;
     }
 

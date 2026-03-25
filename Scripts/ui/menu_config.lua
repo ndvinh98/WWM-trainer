@@ -272,6 +272,21 @@ MenuConfig.TABS = {
 					end
 				end,
 			},
+			{
+				id = "auto_collect_rewards",
+				type = "toggle",
+				label = "Auto Collect Rewards",
+				on_action = function()
+					if MenuController then
+						MenuController.handle_auto_collect_rewards(true)
+					end
+				end,
+				off_action = function()
+					if MenuController then
+						MenuController.handle_auto_collect_rewards(false)
+					end
+				end,
+			},
 		},
 	},
 	-- ========================================

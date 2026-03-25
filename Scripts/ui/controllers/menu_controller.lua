@@ -262,6 +262,22 @@ function MenuController.handle_fishing_master_auto(enabled)
 	FishingMaster:set_auto_play(enabled)
 end
 
+function MenuController.handle_auto_collect_rewards(enabled)
+	local AutoCollectRewards = get_action("auto_collect_rewards")
+	if not AutoCollectRewards then
+		return
+	end
+	if enabled then
+		if AutoCollectRewards.enable then
+			pcall(AutoCollectRewards.enable, AutoCollectRewards)
+		end
+	else
+		if AutoCollectRewards.disable then
+			pcall(AutoCollectRewards.disable, AutoCollectRewards)
+		end
+	end
+end
+
 -- ============================================================
 -- SKIN TAB HANDLERS
 -- ============================================================
