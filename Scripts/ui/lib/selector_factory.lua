@@ -126,7 +126,6 @@ function SelectorFactory._show_single(config, action, user_callbacks)
 		on_apply = function(item)
 			if action[config.apply_fn] then
 				local ok, result, reason = pcall(action[config.apply_fn], action, item)
-				_log("Item: " .. _G.dump(item))
 
 				if not ok then
 					_log("Apply exception: " .. tostring(result))

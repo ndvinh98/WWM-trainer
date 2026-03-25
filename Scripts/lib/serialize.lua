@@ -201,6 +201,6 @@ function Serialize.dump_instance(obj)
 	})
 end
 
-_G.dump = Serialize.dump_value
+_G.dump_value = Serialize.dump_value
 
 return Serialize

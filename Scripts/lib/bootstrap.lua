@@ -337,8 +337,6 @@ end
 -- MARK LOADED
 -- ============================================================
 
-Reg.set("VAR_LIB_LOADED", true)
-
 if _is_reload then
 	Logger.log("[Bootstrap] Reload complete.")
 else

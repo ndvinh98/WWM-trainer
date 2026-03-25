@@ -1,7 +1,7 @@
 -- ============================================================
 -- AUTO_COLLECT_REWARDS.LUA - Auto-collect all pending rewards
 -- ============================================================
--- Polls periodically for uncollected rewards across 9 systems:
+-- Polls periodically for uncollected rewards across 11 systems:
 --   1. Mail/Email rewards
 --   2. Activity center tasks (season guide / daily tasks)
 --   3. Battle pass level rewards
@@ -11,6 +11,8 @@
 --   7. Homeland gen-gold order rewards
 --   8. Club dungeon rewards
 --   9. Activity level-up rewards
+--  10. PvP realm grade rewards (zhige realm)
+--  11. Task/quest chapter completion rewards
 --
 -- Uses fire-and-forget RPCs — server handles response via
 -- existing callback system. No UI feedback needed.
@@ -374,6 +376,97 @@ function AutoCollectRewards:_collect_activity_level_rewards()
 end
 
 -- ============================================================
+-- Collector 10: PvP Realm Grade Rewards (Zhige Realm)
+-- ============================================================
+
+function AutoCollectRewards:_collect_pvp_realm_rewards()
+	local zhige_realm_misc = safe_import("hexm.common.misc.zhige_realm_misc")
+	if not zhige_realm_misc then
+		return 0
+	end
+
+	local has_reward = false
+	pcall(function()
+		has_reward = zhige_realm_misc.zhige_realm_check_is_reward()
+	end)
+	if not has_reward then
+		return 0
+	end
+
+	-- Iterate all grades and claim uncollected ones
+	local count = 0
+	pcall(function()
+		local sys = G.datam.zhige_realm_sid_grade
+		local avatar = G.net:get_avatar()
+		local score = avatar.zhige_realm_prop and avatar.zhige_realm_prop.score or 0
+		for i = 1, len(sys) do
+			if score >= sys[i].score and sys[i].score > 0 then
+				local level = sys[i].stage * 10 + sys[i].lv
+				local state = zhige_realm_misc.zhige_realm_get_level_state(level)
+				if state == zhige_realm_misc.zhige_realm_level_state_achieve then
+					self:log(string.format("PvP Realm: claiming grade reward for level %d", level))
+					G.net:call_server("rpc_zhige_realm_get_grade_reward", level)
+					count = count + 1
+				end
+			end
+		end
+	end)
+	return count
+end
+
+-- ============================================================
+-- Collector 11: Task/Quest Chapter Completion Rewards
+-- ============================================================
+
+function AutoCollectRewards:_collect_task_chapter_rewards()
+	local avatar = G.net:get_avatar()
+	if not avatar or not avatar.tasks_data then
+		return 0
+	end
+
+	local count = 0
+	pcall(function()
+		local recv_rewards = avatar.tasks_data.recv_chapter_rewards
+		if not recv_rewards then
+			return
+		end
+		local received_list = recv_rewards:all_bits()
+		-- Iterate all task groups and find completed but uncollected chapters
+		for group_no, group_data in pairs(G.datam.task_group_info or {}) do
+			pcall(function()
+				-- Only chapters with reward_no can give rewards
+				local reward_no = group_data:get("reward_text")
+				if not reward_no then
+					return
+				end
+				-- Check if already received
+				if received_list:contains(group_no) then
+					return
+				end
+				-- Check if all tasks in this chapter group are finished
+				local tasks = group_data:get("task_nos", {})
+				if #tasks == 0 then
+					return
+				end
+				local all_done = true
+				for _, task_no in pairs(tasks) do
+					if not avatar:task_check_finished(task_no) then
+						all_done = false
+						break
+					end
+				end
+				if all_done then
+					self:log(string.format("Task Chapter: claiming reward for group %s", tostring(group_no)))
+					G.net:call_server("rpc_receive_finish_chapter_reward", group_no)
+					count = count + 1
+				end
+			end)
+		end
+	end)
+	return count
+end
+
+-- ============================================================
 -- Core collect loop
 -- ============================================================
 
@@ -393,6 +486,8 @@ function AutoCollectRewards:do_collect()
 		{ name = "homeland", fn = self._collect_homeland_gen_gold },
 		{ name = "club_dungeon", fn = self._collect_club_dungeon_rewards },
 		{ name = "activity_level", fn = self._collect_activity_level_rewards },
+		{ name = "pvp_realm", fn = self._collect_pvp_realm_rewards },
+		{ name = "task_chapter", fn = self._collect_task_chapter_rewards },
 	}
 
 	local total = 0

@@ -21,6 +21,7 @@ local SCRIPTS_PATH = "C:\\temp\\Where Winds Meet\\Scripts\\"
 -- 1) LOAD BOOTSTRAP (Foundation)
 -- ============================================================
 local Logger = dofile(SCRIPTS_PATH .. "lib\\logger.lua")
+
 Logger.log("Loading bootstrap...")
 local ok, err = pcall(function()
 	dofile(SCRIPTS_PATH .. "lib\\bootstrap.lua")
@@ -44,7 +45,7 @@ if acb_existing and acb_existing:is_hooked("drpf_check_can_report") then
 else
 	local ok, err = pcall(function()
 		dofile(SCRIPTS_PATH .. "actions\\anticheat_bypass.lua")
-		Reg.module("actions.anticheat_bypass"):enable()
+		--Reg.module("actions.anticheat_bypass"):enable()
 	end)
 
 	if not ok then
@@ -104,4 +105,4 @@ else
 	Logger.log("ERROR: Failed to load Menu module: " .. tostring(Menu))
 end
 
-Logger.log("=== SCRIPT INITIALIZATION COMPLETE ===")
+-- Logger.log("=== SCRIPT INITIALIZATION COMPLETE ===")
