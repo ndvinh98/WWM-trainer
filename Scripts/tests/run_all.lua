@@ -74,6 +74,7 @@ local action_files = {
 	"pitchpot",
 	"rhythm_game",
 	"archery_master",
+	"fishing_master",
 }
 
 local function load_action_modules()
@@ -130,6 +131,7 @@ local test_suites = {
 	"test_rhythm_game",
 	"test_target_shoot",
 	"test_archery_master",
+	"test_fishing_master",
 }
 
 local suite_ok, suite_fail = 0, 0

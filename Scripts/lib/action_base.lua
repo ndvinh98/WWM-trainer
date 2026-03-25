@@ -315,6 +315,13 @@ function ActionBase:log(msg)
 		if not self.state.log_enabled then
 			return
 		end
+		if self.state.log_cache and self.state.log_cache[msg] then
+			return
+		end
+		if self.state.log_cache then
+			self.state.log_cache[msg] = true
+		end
+
 		logger.log("[" .. self._name .. "] " .. msg)
 	end
 end

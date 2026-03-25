@@ -5,6 +5,7 @@ local DumpBytecode = ActionBase:extend("actions.dump_bytecode")
 
 local FSUtils = dofile(Constants.LIB_ROOT .. "\\fs_utils.lua")
 local STATE = _G.Reg.state("actions.dump_bytecode.async")
+local MANIFEST_PATH = Constants.SCRIPTS_ROOT .. "\\data\\module_manifest.txt"
 
 function DumpBytecode:define_state()
 	return {
@@ -44,13 +45,50 @@ function DumpBytecode:_clear_state()
 	self.state._is_running = false
 end
 
+function DumpBytecode:_load_static_manifest()
+	local f = io.open(MANIFEST_PATH, "r")
+	if not f then
+		return {}
+	end
+	local names = {}
+	for line in f:lines() do
+		local name = line:match("^%s*(.-)%s*$")
+		if name and #name > 0 then
+			names[#names + 1] = name
+		end
+	end
+	f:close()
+	return names
+end
+
 function DumpBytecode:_build_module_list()
+	local seen = {}
 	local modules = {}
-	for name, mod in pairs(package.loaded) do
-		if type(name) == "string" and mod ~= nil and name ~= "_G" and name ~= "package" then
+
+	local function add(name)
+		if type(name) == "string" and not seen[name] and name ~= "_G" and name ~= "package" then
+			seen[name] = true
 			modules[#modules + 1] = name
 		end
 	end
+
+	-- Source 1: package.loaded (already in memory)
+	for name, mod in pairs(package.loaded) do
+		if mod ~= nil then add(name) end
+	end
+
+	-- Source 2: package.preload (registered but not executed)
+	if package.preload then
+		for name, _ in pairs(package.preload) do
+			add(name)
+		end
+	end
+
+	-- Source 3: static manifest (covers lazy-loaded modules)
+	for _, name in ipairs(self:_load_static_manifest()) do
+		add(name)
+	end
+
 	table.sort(modules)
 	return modules
 end

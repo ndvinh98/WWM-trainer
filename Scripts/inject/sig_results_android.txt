@@ -1,0 +1,356 @@
+==============================================================================
+  lua_load / lua_pcall Signature Finder  (Android ARM64, static analysis)
+==============================================================================
+
+Reading: C:\temp\Where Winds Meet\WWM_APK\arm64_extracted\lib\arm64-v8a\libGame.so
+Size: 130.7 MB
+
+Entry point: 0x9668000
+LOAD segments: 4
+Sections: 29
+
+Executable sections:
+  ���������������������������  addr=0x000002D382E0  size=0x467A388 (70.5 MB)
+  �������������������������������������.note.gnu.build-id  addr=0x0000073B2670  size=0xC540 (0.0 MB)
+  ���������������������  addr=0x000009668000  size=0x4000 (0.0 MB)
+
+------------------------------------------------------------------------------
+Resolving luaopen_* / lua_* / luaL_* exports from symbol tables...
+------------------------------------------------------------------------------
+
+  Found 5 luaopen_* symbols
+  Found 0 lua_*/luaL_* symbols
+
+  luaopen_* symbols:
+    luaopen_memory_leak_checker               VA=0x0000030924D8  [FD 7B BE A9 F3 0B 00 F9 FD 03 00 91 08 00 D0 D2]
+    luaopen_mime_core                         VA=0x000003084F9C  [FD 7B BE A9 F3 0B 00 F9 FD 03 00 91 E1 03 1F 2A]
+    luaopen_socket_core                       VA=0x000003084D20  [FD 7B BE A9 F3 0B 00 F9 FD 03 00 91 F3 03 00 AA]
+    luaopen_socket_serial                     VA=0x000003088830  [FD 7B BE A9 F4 4F 01 A9 FD 03 00 91 B4 3A FF D0]
+    luaopen_socket_unix                       VA=0x00000308AA10  [FD 7B BE A9 F4 4F 01 A9 FD 03 00 91 E1 03 1F 2A]
+
+------------------------------------------------------------------------------
+Tracing BL call chains from luaopen_* (depth=2)...
+------------------------------------------------------------------------------
+  Found 96 unique call targets
+
+==============================================================================
+LIKELY lua_load CANDIDATES (via heuristic)
+  (BLR indirect call to reader callback + large stack frame)
+==============================================================================
+
+  VA=0x000002FFA7A4  fan-in=2
+  sig: FD 7B BD A9 F5 0B 00 F9 F4 4F 02 A9 FD 03 00 91 08 2C 40 F9 F3 03 00 AA E2 03 01 2A 28 03 00 B5
+  tags: blr_indirect=2 frame=0x160 bl_calls=6 b_jumps=3
+
+==============================================================================
+LIKELY lua_pcall CANDIDATES (via heuristic)
+  (zero_mov + sxtw sign-extension of int params)
+==============================================================================
+  (none matched heuristic — check core API list below)
+
+==============================================================================
+ALL CORE API FUNCTIONS (called by 2+ luaopen_* functions)
+==============================================================================
+
+  VA=0x000002FDC650  fan-in=5
+  sig: FD 7B BE A9 F4 4F 01 A9 FD 03 00 91 08 14 40 F9 41 02 F8 37 09 01 40 F9 0A 0C 40 F9 29 51 21 8B
+  tags: sxtw=1 bl_calls=0 b_jumps=1
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000002FDC974  fan-in=5
+  sig: 08 0C 40 F9 0A 14 40 F9 3F 04 00 71 0B 01 00 54 49 01 40 F9 29 51 21 8B 3F 01 08 EB E3 01 00 54
+  tags: bl_calls=0 b_jumps=2
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000002FDE028  fan-in=5
+  sig: FF C3 04 D1 FD 7B 10 A9 FC 57 11 A9 F4 4F 12 A9 FD 03 04 91 E2 0F 08 A9 EA 03 02 91 EB 03 00 91
+  tags: frame=0x130 bl_calls=2
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000002FDE0F4  fan-in=5
+  sig: FD 7B BD A9 F5 0B 00 F9 F4 4F 02 A9 FD 03 00 91 F5 03 01 AA F3 03 00 AA C2 04 00 34 E0 03 13 AA
+  tags: sxtw=1 bl_calls=1 b_jumps=1
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000002FDE1D0  fan-in=5
+  sig: 28 02 80 52 09 0C 40 F9 3F 00 00 71 08 15 9F 1A 28 21 00 39 08 0C 40 F9 08 41 00 91 08 0C 00 F9
+  tags: bl_calls=0
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000002FDE6C0  fan-in=5
+  sig: FD 7B BD A9 F5 0B 00 F9 F4 4F 02 A9 FD 03 00 91 0A 14 40 F9 E8 03 01 2A F3 03 00 AA 3F 04 00 71
+  tags: bl_calls=3 b_jumps=3
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000002FE0020  fan-in=5
+  sig: FD 7B BD A9 F5 0B 00 F9 F4 4F 02 A9 FD 03 00 91 F4 03 02 2A F5 03 01 2A F3 03 00 AA 72 E9 00 94
+  tags: bl_calls=2 b_jumps=1
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000002FE0798  fan-in=5
+  sig: 09 14 40 F9 3F 04 00 71 EB 00 00 54 28 01 40 F9 01 51 21 8B 08 0C 40 F9 3F 00 08 EB E2 02 00 54
+  tags: frame=0x50 bl_calls=3 b_jumps=10
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000002FE1148  fan-in=5
+  sig: FD 7B BF A9 FD 03 00 91 08 0C 40 F9 09 81 5F 38 3F 11 01 71 01 01 00 54 09 10 40 F9 08 01 5F F8
+  tags: bl_calls=6 b_jumps=7
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000002FE5794  fan-in=5
+  sig: FD 7B BC A9 FC 0B 00 F9 F6 57 02 A9 F4 4F 03 A9 FD 03 00 91 FF 43 07 D1 E2 0F 08 A9 E9 03 00 91
+  tags: frame=0x1D0 bl_calls=7 b_jumps=1
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000002FFE5C8  fan-in=5
+  sig: FD 7B BE A9 F3 0B 00 F9 FD 03 00 91 28 6C 1C 53 F3 03 01 2A C1 04 80 52 08 A1 00 11 02 7D 40 93
+  tags: sxtw=1 bl_calls=1
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000002FFF020  fan-in=5
+  sig: 28 24 40 39 09 09 00 12 3F 19 00 71 81 00 00 54 C9 18 80 52 08 01 09 0A 2A 00 00 14 2A 20 40 39
+  tags: bl_calls=0 b_jumps=7
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000002FFF1E4  fan-in=5
+  sig: FD 7B BE A9 F4 4F 01 A9 FD 03 00 91 E8 03 02 AA 14 10 40 F9 F3 03 01 2A 22 0C 00 12 E1 03 08 AA
+  tags: bl_calls=1
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000003014700  fan-in=5
+  sig: FD 7B BC A9 F7 0B 00 F9 F6 57 02 A9 F4 4F 03 A9 FD 03 00 91 68 F6 99 52 29 7C 40 92 F3 03 01 AA
+  tags: bl_calls=4 b_jumps=1
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x00000301A04C  fan-in=5
+  sig: FF 03 03 D1 FD 7B 06 A9 FC 6F 07 A9 FA 67 08 A9 F8 5F 09 A9 F6 57 0A A9 F4 4F 0B A9 FD 83 01 91
+  tags: frame=0xC0 bl_calls=2 b_jumps=4
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x00000301A604  fan-in=5
+  sig: FD 7B BF A9 FD 03 00 91 A1 00 80 52 02 08 80 52 F4 92 FF 97 E8 0F 80 52 1F 14 00 B9 08 20 00 79
+  tags: bl_calls=1
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x00000301B050  fan-in=5
+  sig: FF 03 01 D1 FD 7B 02 A9 F3 1B 00 F9 FD 83 00 91 53 D0 3B D5 68 16 40 F9 A8 83 1F F8 28 20 40 39
+  tags: frame=0x40 bl_calls=1 b_jumps=3
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000003020DB8  fan-in=5
+  sig: FD 7B BC A9 F8 5F 01 A9 F6 57 02 A9 F4 4F 03 A9 FD 03 00 91 F3 03 03 AA F5 03 02 AA F6 03 01 AA
+  tags: bl_calls=3 b_jumps=3
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000002FDC4C4  fan-in=4
+  sig: FD 7B BD A9 F5 0B 00 F9 F4 4F 02 A9 FD 03 00 91 13 A8 42 A9 34 7C 40 93 09 0C 40 F9 E8 03 00 AA
+  tags: sxtw=1 bl_calls=1 b_jumps=2
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_unix
+
+  VA=0x000002FDC600  fan-in=4
+  sig: 08 3B 97 52 29 04 00 51 08 FE BF 72 3F 01 08 6B E3 00 00 54 08 14 40 F9 09 0C 40 F9 08 01 40 F9
+  tags: bl_calls=0
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_unix
+
+  VA=0x000002FDDF2C  fan-in=4
+  sig: FD 7B BE A9 F4 4F 01 A9 FD 03 00 91 F3 03 00 AA 41 01 00 B4 E0 03 13 AA EF D9 00 94 68 0E 40 F9
+  tags: bl_calls=2 b_jumps=1
+  called by: luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000002FE09DC  fan-in=4
+  sig: 08 0C 40 F9 43 00 80 52 02 81 00 D1 01 00 00 14 FD 7B BD A9 F5 0B 00 F9 F4 4F 02 A9 FD 03 00 91
+  tags: bl_calls=2 b_jumps=3
+  called by: luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000002FE72B0  fan-in=4
+  sig: FD 7B BC A9 F8 5F 01 A9 F6 57 02 A9 F4 4F 03 A9 FD 03 00 91 F5 03 01 AA E1 03 02 2A F3 03 02 2A
+  tags: bl_calls=12 b_jumps=4
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_unix
+
+  VA=0x000002FF7660  fan-in=4
+  sig: 81 02 F8 37 08 14 40 F9 0A 80 01 91 1F 01 0A EB E9 07 9F 1A 21 01 00 34 00 01 00 54 08 09 40 F9
+  tags: bl_calls=0
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial
+
+  VA=0x000002FF7B3C  fan-in=4
+  sig: FF 43 02 D1 FD 7B 03 A9 FC 6F 04 A9 FA 67 05 A9 F8 5F 06 A9 F6 57 07 A9 F4 4F 08 A9 FD C3 00 91
+  tags: frame=0x90 bl_calls=3 b_jumps=8
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial
+
+  VA=0x000003009B2C  fan-in=4
+  sig: FD 7B BD A9 F6 57 01 A9 F4 4F 02 A9 FD 03 00 91 E1 01 00 B4 16 10 40 F9 F4 03 00 AA 55 7C 40 93
+  tags: blr_indirect=1 sxtw=1 bl_calls=0 b_jumps=1
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_unix
+
+  VA=0x00000300AFAC  fan-in=4
+  sig: 08 04 00 51 1F 01 04 71 23 01 00 54 E9 03 1F 2A EA 03 08 2A 48 7D 08 53 4B 7D 10 53 29 21 00 11
+  tags: bl_calls=0 b_jumps=1
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_unix
+
+  VA=0x00000301AF24  fan-in=4
+  sig: 09 14 40 B9 28 04 00 D1 1F 01 09 EB A3 02 00 54 0A 40 C0 39 CA 02 F8 36 20 01 27 1E 00 58 20 0E
+  tags: bl_calls=0
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_unix
+
+  VA=0x00000301B228  fan-in=4
+  sig: FF 03 01 D1 FD 7B 01 A9 F5 13 00 F9 F4 4F 03 A9 FD 43 00 91 53 D0 3B D5 68 16 40 F9 E8 07 00 F9
+  tags: frame=0x40 bl_calls=2 b_jumps=7
+  called by: luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000003020EF0  fan-in=4
+  sig: FD 7B BB A9 FA 67 01 A9 F8 5F 02 A9 F6 57 03 A9 F4 4F 04 A9 FD 03 00 91 F7 03 04 AA F4 03 03 AA
+  tags: bl_calls=4 b_jumps=4
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_unix
+
+  VA=0x0000073B29A0  fan-in=4
+  sig: B0 46 00 B0 11 EA 43 F9 10 42 1F 91 20 02 1F D6 B0 46 00 B0 11 EE 43 F9 10 62 1F 91 20 02 1F D6
+  tags: bl_calls=0
+  called by: luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000002FDCA20  fan-in=3
+  sig: 09 14 40 F9 3F 04 00 71 2B 01 00 54 28 01 40 F9 09 51 21 8B 08 0C 40 F9 3F 01 08 EB 03 02 00 54
+  tags: bl_calls=0 b_jumps=2
+  called by: luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000002FDCAE0  fan-in=3
+  sig: E8 1F 02 D0 08 C1 01 91 08 CD 21 8B 00 05 40 F9 C0 03 5F D6 09 14 40 F9 3F 04 00 71 2B 01 00 54
+  tags: bl_calls=0
+  called by: luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000002FDCE70  fan-in=3
+  sig: 09 14 40 F9 3F 04 00 71 2B 01 00 54 28 01 40 F9 09 0C 40 F9 08 51 21 8B 1F 01 09 EB 03 02 00 54
+  tags: bl_calls=0 b_jumps=2
+  called by: luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000002FDD708  fan-in=3
+  sig: FD 7B BD A9 F5 0B 00 F9 F4 4F 02 A9 FD 03 00 91 0A 14 40 F9 E8 03 01 2A F3 03 00 AA 3F 04 00 71
+  tags: bl_calls=2 b_jumps=7
+  called by: luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000002FDDB9C  fan-in=3
+  sig: 09 14 40 F9 3F 04 00 71 2B 01 00 54 28 01 40 F9 09 0C 40 F9 08 51 21 8B 1F 01 09 EB 03 02 00 54
+  tags: bl_calls=0 b_jumps=2
+  called by: luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000002FDDFA0  fan-in=3
+  sig: FF 83 01 D1 FD 7B 03 A9 F5 23 00 F9 F4 4F 05 A9 FD C3 00 91 54 D0 3B D5 E8 03 01 AA E3 03 00 91
+  tags: frame=0x60 bl_calls=2
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core
+
+  VA=0x000002FDE5A8  fan-in=3
+  sig: FD 7B BE A9 F4 4F 01 A9 FD 03 00 91 09 14 40 F9 F3 03 00 AA 3F 04 00 71 2B 01 00 54 28 01 40 F9
+  tags: bl_calls=2 b_jumps=3
+  called by: luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000002FDFDF4  fan-in=3
+  sig: 09 14 40 F9 3F 04 00 71 2B 01 00 54 28 01 40 F9 09 0C 40 F9 08 51 21 8B 1F 01 09 EB 03 02 00 54
+  tags: bl_calls=0 b_jumps=2
+  called by: luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000002FE00B4  fan-in=3
+  sig: 09 14 40 F9 3F 04 00 71 2B 01 00 54 28 01 40 F9 09 0C 40 F9 08 51 21 8B 1F 01 09 EB 03 02 00 54
+  tags: bl_calls=0 b_jumps=3
+  called by: luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000002FE4064  fan-in=3
+  sig: FD 7B BE A9 F4 4F 01 A9 FD 03 00 91 3F 04 00 71 F3 03 00 AA 8B 00 00 54 E0 03 13 AA EA F6 00 94
+  tags: bl_calls=2 b_jumps=2
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core
+
+  VA=0x000002FE55B0  fan-in=3
+  sig: FF 43 05 D1 FD 7B 10 A9 FC 8B 00 F9 F8 5F 12 A9 F6 57 13 A9 F4 4F 14 A9 FD 03 04 91 58 D0 3B D5
+  tags: frame=0x150 bl_calls=19 b_jumps=3
+  called by: luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000002FE5C1C  fan-in=3
+  sig: FD 7B BE A9 F4 4F 01 A9 FD 03 00 91 F3 03 01 AA 01 3B 97 52 F4 03 00 AA 01 FE BF 72 E2 03 13 AA
+  tags: bl_calls=7 b_jumps=1
+  called by: luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000002FE5CEC  fan-in=3
+  sig: FD 7B BD A9 F6 57 01 A9 F4 4F 02 A9 FD 03 00 91 F5 03 02 AA F6 03 01 2A F3 03 00 AA A5 DF FF 97
+  tags: bl_calls=5 b_jumps=1
+  called by: luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000002FFAAC4  fan-in=3
+  sig: FD 7B BE A9 F4 4F 01 A9 FD 03 00 91 08 28 43 A9 08 01 0A CB 09 FD 44 D3 08 48 88 52 E8 01 A0 72
+  tags: bl_calls=2 b_jumps=1
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core
+
+  VA=0x000002FFFECC  fan-in=3
+  sig: FF C3 01 D1 FD 7B 01 A9 FC 6F 02 A9 FA 67 03 A9 F8 5F 04 A9 F6 57 05 A9 F4 4F 06 A9 FD 43 00 91
+  tags: frame=0x70 bl_calls=4 b_jumps=4
+  called by: luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial
+
+  VA=0x000003014480  fan-in=3
+  sig: FD 7B BB A9 FA 67 01 A9 F8 5F 02 A9 F6 57 03 A9 F4 4F 04 A9 FD 03 00 91 F3 03 02 AA F4 03 01 AA
+  tags: bl_calls=6 b_jumps=2
+  called by: luaopen_mime_core, luaopen_socket_core, luaopen_socket_unix
+
+  VA=0x00000301ACF8  fan-in=3
+  sig: FD 7B BD A9 F5 0B 00 F9 F4 4F 02 A9 FD 03 00 91 F4 03 01 AA F5 03 00 AA E0 03 01 AA E1 03 02 AA
+  tags: bl_calls=1 b_jumps=1
+  called by: luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial
+
+  VA=0x000003082D9C  fan-in=3
+  sig: FD 7B BD A9 F6 57 01 A9 F4 4F 02 A9 FD 03 00 91 F4 03 02 AA F5 03 01 AA F3 03 00 AA 99 8B FD 97
+  tags: frame=0x50 bl_calls=23 b_jumps=2
+  called by: luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000003082F8C  fan-in=3
+  sig: FF 83 04 D1 FD 7B 10 A9 FC 4F 11 A9 FD 03 04 91 A3 93 38 A9 AA E3 01 D1 EB 03 00 91 A5 9B 39 A9
+  tags: frame=0x120 bl_calls=1
+  called by: luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000003083030  fan-in=3
+  sig: FD 7B BE A9 F4 4F 01 A9 FD 03 00 91 F3 03 02 AA E2 03 01 AA 01 3B 97 52 01 FE BF 72 F4 03 00 AA
+  tags: frame=0x80 bl_calls=20 b_jumps=5
+  called by: luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x0000073B26D0  fan-in=3
+  sig: B0 46 00 B0 11 36 43 F9 10 A2 19 91 20 02 1F D6 B0 46 00 B0 11 3A 43 F9 10 C2 19 91 20 02 1F D6
+  tags: bl_calls=0
+  called by: luaopen_mime_core, luaopen_socket_core, luaopen_socket_unix
+
+  VA=0x000002FDC634  fan-in=2
+  sig: 08 14 40 F9 09 0C 40 F9 08 01 40 F9 28 01 08 CB 08 41 00 D1 00 FD 44 D3 C0 03 5F D6 FD 7B BE A9
+  tags: bl_calls=0
+  called by: luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x000002FF86B8  fan-in=2
+  sig: FD 7B BE A9 F3 0B 00 F9 FD 03 00 91 08 54 40 F9 A8 02 00 B4 09 0C 40 F9 0B 1C 40 F9 22 00 80 52
+  tags: bl_calls=2 b_jumps=1
+  called by: luaopen_socket_core, luaopen_socket_serial
+
+  VA=0x000002FFA7A4  fan-in=2
+  sig: FD 7B BD A9 F5 0B 00 F9 F4 4F 02 A9 FD 03 00 91 08 2C 40 F9 F3 03 00 AA E2 03 01 2A 28 03 00 B5
+  tags: blr_indirect=2 frame=0x160 bl_calls=6 b_jumps=3
+  >>> lua_load?
+  called by: luaopen_socket_core, luaopen_socket_serial
+
+  VA=0x000002FFF934  fan-in=2
+  sig: FD 7B BB A9 F9 0B 00 F9 F8 5F 02 A9 F6 57 03 A9 F4 4F 04 A9 FD 03 00 91 13 10 40 F9 F4 03 00 AA
+  tags: bl_calls=5 b_jumps=7
+  called by: luaopen_mime_core, luaopen_socket_core
+
+  VA=0x000003000AB4  fan-in=2
+  sig: FF 03 02 D1 FD 7B 02 A9 FC 6F 03 A9 FA 67 04 A9 F8 5F 05 A9 F6 57 06 A9 F4 4F 07 A9 FD 83 00 91
+  tags: frame=0x80 bl_calls=9 b_jumps=10
+  called by: luaopen_mime_core, luaopen_socket_core
+
+  VA=0x000003001004  fan-in=2
+  sig: FD 7B BB A9 F9 0B 00 F9 F8 5F 02 A9 F6 57 03 A9 F4 4F 04 A9 FD 03 00 91 00 E4 00 6F F5 03 01 AA
+  tags: bl_calls=3 b_jumps=11
+  called by: luaopen_mime_core, luaopen_socket_core
+
+------------------------------------------------------------------------------
+NEXT STEPS:
+------------------------------------------------------------------------------
+1. If symbols are present: use VA offsets directly for hooking
+2. If symbols are stripped in release: use the byte signatures above
+3. For injection: use Frida / Xposed / plt hooking on libGame.so
+4. lua_load: 5 params (L, reader, data, chunkname, mode)
+5. lua_pcall wraps lua_pcallk, zeros out k/ctx, sign-extends nargs/nresults
+6. Signature = first 16-32 bytes of function, enough to be unique in .text
+
+Results saved to: C:\temp\Where Winds Meet\Scripts\inject\sig_results_android.txt

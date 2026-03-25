@@ -254,6 +254,14 @@ function MenuController.handle_archery_master()
 	ArcheryMaster:execute()
 end
 
+function MenuController.handle_fishing_master_auto(enabled)
+	local FishingMaster = get_action("fishing_master")
+	if not FishingMaster then
+		return
+	end
+	FishingMaster:set_auto_play(enabled)
+end
+
 -- ============================================================
 -- SKIN TAB HANDLERS
 -- ============================================================

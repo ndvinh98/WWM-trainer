@@ -257,6 +257,21 @@ MenuConfig.TABS = {
 					end
 				end,
 			},
+			{
+				id = "fishing_master_auto",
+				type = "toggle",
+				label = "Fishing Auto-Play",
+				on_action = function()
+					if MenuController then
+						MenuController.handle_fishing_master_auto(true)
+					end
+				end,
+				off_action = function()
+					if MenuController then
+						MenuController.handle_fishing_master_auto(false)
+					end
+				end,
+			},
 		},
 	},
 	-- ========================================
