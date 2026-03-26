@@ -304,6 +304,52 @@ static void* TcpServerThread(void*) {
 }
 
 // ===========================================================================
+// /proc/self/maps parser — fallback when dl_iterate_phdr can't find the lib
+// (happens when we're loaded as DT_NEEDED of the target lib itself)
+// ===========================================================================
+
+static bool find_lib_in_maps(const char* libname, MemRegion* region) {
+    FILE* fp = fopen("/proc/self/maps", "r");
+    if (!fp) return false;
+
+    char line[1024];
+    uintptr_t first_rx_start = 0;
+    uintptr_t first_rx_end = 0;
+
+    while (fgets(line, sizeof(line), fp)) {
+        if (strstr(line, libname) == nullptr) continue;
+        if (strstr(line, "r-xp") == nullptr && strstr(line, "r--p") == nullptr) continue;
+
+        uintptr_t start, end;
+        if (sscanf(line, "%lx-%lx", &start, &end) != 2) continue;
+
+        // We want r-xp (executable) segments
+        if (strstr(line, "r-xp")) {
+            if (first_rx_start == 0) {
+                first_rx_start = start;
+                first_rx_end = end;
+            } else {
+                // Extend to cover contiguous executable regions
+                if (start <= first_rx_end + 0x1000) {
+                    first_rx_end = end;
+                }
+            }
+        }
+    }
+    fclose(fp);
+
+    if (first_rx_start != 0) {
+        region->base = first_rx_start;
+        region->size = first_rx_end - first_rx_start;
+        LOGI("[maps] Found %s: base=0x%lx size=0x%lx (%.1f MB)",
+             libname, (unsigned long)region->base,
+             (unsigned long)region->size, region->size / 1048576.0);
+        return true;
+    }
+    return false;
+}
+
+// ===========================================================================
 // Background init thread — polls until libGame.so is loaded, then hooks
 // ===========================================================================
 
@@ -312,9 +358,16 @@ static void* InitThread(void* /*arg*/) {
 
     // Poll every 500ms for up to 120 seconds
     for (int i = 0; i < 240; ++i) {
+        // Try dl_iterate_phdr first (works when loaded via a different lib)
         dl_iterate_phdr(dl_callback, &g_gameText);
         if (g_gameText.base != 0 && g_gameText.size != 0)
             break;
+
+        // Fallback: parse /proc/self/maps (works when loaded as DT_NEEDED
+        // of libGame.so itself — dl_iterate_phdr can't see it yet)
+        if (find_lib_in_maps("libGame.so", &g_gameText))
+            break;
+
         // Reset for next attempt
         g_gameText.base = 0;
         g_gameText.size = 0;

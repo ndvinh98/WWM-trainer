@@ -20,8 +20,6 @@ import sys
 import zipfile
 from pathlib import Path
 
-import lief
-
 SCRIPT_DIR = Path(__file__).parent.resolve()
 PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent  # -> Where Winds Meet/
 DEFAULT_APK_DIR = PROJECT_ROOT / "WWM_APK"
@@ -89,57 +87,220 @@ def build_native(ndk_path: str | None = None) -> Path:
 
 
 # =========================================================================
-# ELF patching — add DT_NEEDED for libinject.so
+# ELF patching — surgical byte-level DT_NEEDED injection
+# Avoids LIEF's binary.write() which rewrites the entire ELF and corrupts
+# GOT/PLT entries, causing SIGSEGV in the patched library's constructors.
 # =========================================================================
+
+import struct as _struct
+
 
 def find_best_target_lib(arm64_dir: Path) -> str:
     """Find the best .so to patch in the ARM64 split.
 
-    Prefers a small, early-loading library to minimize risk.
-    Falls back to the first .so found.
+    Requires: >=2 DT_NULL entries (1 spare + 1 terminator) and >=13 bytes
+    of zero padding after .dynstr for the "libinject.so\\0" string.
+    AVOID libybuaxz.so — it's the protection shell and hash-checks itself.
     """
     lib_dir = arm64_dir / "lib" / "arm64-v8a"
     if not lib_dir.exists():
         raise FileNotFoundError(f"No lib/arm64-v8a in {arm64_dir}")
 
-    # Priority list: small utility libs that load early
+    # Priority: libraries confirmed to have spare DT_NULL + strtab padding
+    # and that load at game startup (audio subsystem inits early)
     preferred = [
-        "libybuaxz.so",       # protection shell stub — loads very early
-        "libxxhash.so",       # tiny utility
-        "libandroidndkp.so",  # NDK profiling
+        "libAudioCore.so",    # 1.1MB, 5 DT_NULL, 16B strtab padding, loads early
+        "libAudioEngine.so",  # 2.1MB, 5 DT_NULL, audio subsystem
+        "libccplayer.so",     # 1.1MB, 5 DT_NULL, media player
+        "libCommonLib.so",    # 3.9MB, 5 DT_NULL, common utility
     ]
     for name in preferred:
         if (lib_dir / name).exists():
             return name
 
-    # Fallback: first .so
-    for f in sorted(lib_dir.glob("*.so")):
-        return f.name
+    # Fallback: first .so with enough room for manual patching
+    for f in sorted(lib_dir.glob("*.so"), key=lambda p: p.stat().st_size):
+        if f.name == "libybuaxz.so":
+            continue
+        info = _analyze_elf_for_patch(f)
+        if info and info["spare_null"] >= 1 and info["after_padding"] >= 13:
+            return f.name
 
-    raise FileNotFoundError("No .so files found in ARM64 lib dir")
+    raise FileNotFoundError("No patchable .so files found in ARM64 lib dir")
+
+
+def _analyze_elf_for_patch(so_path: Path) -> dict | None:
+    """Analyze an ELF for manual DT_NEEDED patching feasibility."""
+    data = so_path.read_bytes()
+    if len(data) < 64 or data[:4] != b"\x7fELF" or data[4] != 2:
+        return None  # not ELF64
+
+    e_phoff = _struct.unpack_from("<Q", data, 32)[0]
+    e_phentsize = _struct.unpack_from("<H", data, 54)[0]
+    e_phnum = _struct.unpack_from("<H", data, 56)[0]
+
+    dyn_off = dyn_size = 0
+    loads = []
+    for i in range(e_phnum):
+        ph = e_phoff + i * e_phentsize
+        p_type = _struct.unpack_from("<I", data, ph)[0]
+        p_offset = _struct.unpack_from("<Q", data, ph + 8)[0]
+        p_vaddr = _struct.unpack_from("<Q", data, ph + 16)[0]
+        p_filesz = _struct.unpack_from("<Q", data, ph + 32)[0]
+        if p_type == 2:  # PT_DYNAMIC
+            dyn_off, dyn_size = p_offset, p_filesz
+        if p_type == 1:  # PT_LOAD
+            loads.append((p_offset, p_vaddr, p_filesz))
+
+    if dyn_off == 0:
+        return None
+
+    strtab_addr = strsz = 0
+    null_count = 0
+    for j in range(dyn_size // 16):
+        pos = dyn_off + j * 16
+        d_tag = _struct.unpack_from("<q", data, pos)[0]
+        d_val = _struct.unpack_from("<Q", data, pos + 8)[0]
+        if d_tag == 0:
+            null_count += 1
+        elif d_tag == 5:
+            strtab_addr = d_val
+        elif d_tag == 10:
+            strsz = d_val
+
+    strtab_foff = 0
+    for loff, lvaddr, lfsz in loads:
+        if lvaddr <= strtab_addr < lvaddr + lfsz:
+            strtab_foff = loff + (strtab_addr - lvaddr)
+            break
+
+    after_padding = 0
+    if strtab_foff > 0 and strsz > 0:
+        end_pos = strtab_foff + strsz
+        for k in range(min(64, len(data) - end_pos)):
+            if data[end_pos + k] == 0:
+                after_padding += 1
+            else:
+                break
+
+    return {
+        "spare_null": null_count - 1,
+        "after_padding": after_padding,
+    }
 
 
 def patch_elf_add_needed(so_path: Path, needed_lib: str = "libinject.so") -> bool:
-    """Add DT_NEEDED entry for libinject.so to an existing .so using LIEF."""
+    """Surgically patch an ELF to add a DT_NEEDED entry via byte-level writes.
+
+    Strategy (no LIEF rewrite — preserves all existing relocations):
+      1. Write the library name string in zero-padding after .dynstr
+      2. Update DT_STRSZ to cover the new string
+      3. Overwrite one spare DT_NULL entry with DT_NEEDED
+    """
     print(f"  Patching {so_path.name} to add DT_NEEDED: {needed_lib}")
 
-    binary = lief.parse(str(so_path))
-    if binary is None:
-        print(f"  ERROR: LIEF failed to parse {so_path}")
+    data = bytearray(so_path.read_bytes())
+    needed_bytes = needed_lib.encode("ascii") + b"\x00"
+    needed_len = len(needed_bytes)  # 13 for "libinject.so\0"
+
+    # ---- Parse ELF64 program headers ----
+    e_phoff = _struct.unpack_from("<Q", data, 32)[0]
+    e_phentsize = _struct.unpack_from("<H", data, 54)[0]
+    e_phnum = _struct.unpack_from("<H", data, 56)[0]
+
+    dyn_off = dyn_size = 0
+    loads = []
+    for i in range(e_phnum):
+        ph = e_phoff + i * e_phentsize
+        p_type = _struct.unpack_from("<I", data, ph)[0]
+        p_offset = _struct.unpack_from("<Q", data, ph + 8)[0]
+        p_vaddr = _struct.unpack_from("<Q", data, ph + 16)[0]
+        p_filesz = _struct.unpack_from("<Q", data, ph + 32)[0]
+        if p_type == 2:  # PT_DYNAMIC
+            dyn_off, dyn_size = p_offset, p_filesz
+        if p_type == 1:  # PT_LOAD
+            loads.append((p_offset, p_vaddr, p_filesz))
+
+    if dyn_off == 0:
+        print("  ERROR: No PT_DYNAMIC segment found")
+        return False
+
+    # ---- Parse .dynamic entries ----
+    DT_NEEDED, DT_NULL, DT_STRTAB, DT_STRSZ = 1, 0, 5, 10
+    strtab_addr = strsz = 0
+    strsz_entry_off = 0
+    null_entries = []  # file offsets of DT_NULL entries
+    existing_needed = []
+
+    for j in range(dyn_size // 16):
+        pos = dyn_off + j * 16
+        d_tag = _struct.unpack_from("<q", data, pos)[0]
+        d_val = _struct.unpack_from("<Q", data, pos + 8)[0]
+
+        if d_tag == DT_NULL:
+            null_entries.append(pos)
+        elif d_tag == DT_NEEDED:
+            existing_needed.append(d_val)
+        elif d_tag == DT_STRTAB:
+            strtab_addr = d_val
+        elif d_tag == DT_STRSZ:
+            strsz = d_val
+            strsz_entry_off = pos
+
+    # Convert strtab vaddr -> file offset
+    strtab_foff = 0
+    for loff, lvaddr, lfsz in loads:
+        if lvaddr <= strtab_addr < lvaddr + lfsz:
+            strtab_foff = loff + (strtab_addr - lvaddr)
+            break
+
+    if strtab_foff == 0:
+        print("  ERROR: Could not resolve DT_STRTAB to file offset")
         return False
 
     # Check if already patched
-    existing = [lib for lib in binary.libraries]
-    if needed_lib in existing:
-        print(f"  Already has {needed_lib} in DT_NEEDED, skipping")
-        return True
+    str_write_off = strtab_foff + strsz
+    for nval in existing_needed:
+        name_start = strtab_foff + nval
+        name_end = data.index(0, name_start)
+        name = data[name_start:name_end].decode("latin-1")
+        if name == needed_lib:
+            print(f"  Already has {needed_lib} in DT_NEEDED, skipping")
+            return True
 
-    # Add DT_NEEDED
-    binary.add_library(needed_lib)
+    # Validate space
+    if len(null_entries) < 2:
+        print(f"  ERROR: Need >=2 DT_NULL entries (have {len(null_entries)})")
+        return False
 
-    # Write back
-    binary.write(str(so_path))
-    print(f"  Patched! DT_NEEDED now includes: {needed_lib}")
+    # Check zero-padding after .dynstr
+    for k in range(needed_len):
+        if str_write_off + k >= len(data) or data[str_write_off + k] != 0:
+            print(f"  ERROR: Not enough zero-padding after .dynstr "
+                  f"(need {needed_len} bytes, byte {k} is non-zero)")
+            return False
+
+    # ---- Patch 1: Write library name string after .dynstr ----
+    new_str_offset = strsz  # offset relative to DT_STRTAB
+    data[str_write_off:str_write_off + needed_len] = needed_bytes
+    print(f"  Wrote '{needed_lib}' at file offset 0x{str_write_off:x} "
+          f"(strtab offset {new_str_offset})")
+
+    # ---- Patch 2: Update DT_STRSZ to cover the new string ----
+    new_strsz = strsz + needed_len
+    _struct.pack_into("<Q", data, strsz_entry_off + 8, new_strsz)
+    print(f"  Updated DT_STRSZ: {strsz} -> {new_strsz}")
+
+    # ---- Patch 3: Replace first DT_NULL with DT_NEEDED ----
+    patch_pos = null_entries[0]
+    _struct.pack_into("<q", data, patch_pos, DT_NEEDED)
+    _struct.pack_into("<Q", data, patch_pos + 8, new_str_offset)
+    print(f"  Wrote DT_NEEDED at file offset 0x{patch_pos:x} "
+          f"(remaining DT_NULL: {len(null_entries) - 1})")
+
+    # ---- Write patched binary ----
+    so_path.write_bytes(bytes(data))
+    print(f"  Patched! {so_path.name} now loads {needed_lib}")
     return True
 
 
