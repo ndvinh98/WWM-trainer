@@ -1,5 +1,5 @@
 // inject_android.cpp — ARM64 Lua hook library for Android
-// Loaded via System.loadLibrary("inject") from InjectProvider
+// Loaded as ELF DT_NEEDED dependency via patched native .so
 // Uses Dobby for inline hooking (replaces MinHook)
 
 #include <jni.h>
@@ -304,12 +304,9 @@ static void* TcpServerThread(void*) {
 }
 
 // ===========================================================================
-// JNI_OnLoad — entry point when System.loadLibrary("inject") is called
+// Background init thread — polls until libGame.so is loaded, then hooks
 // ===========================================================================
 
-// ---------------------------------------------------------------------------
-// Background init thread — polls until libGame.so is loaded, then hooks
-// ---------------------------------------------------------------------------
 static void* InitThread(void* /*arg*/) {
     LOGI("[init] Waiting for libGame.so to load...");
 
@@ -370,17 +367,20 @@ static void* InitThread(void* /*arg*/) {
 }
 
 // ===========================================================================
-// JNI_OnLoad — entry point when System.loadLibrary("inject") is called
+// Entry point — __attribute__((constructor))
+// Called by the dynamic linker when libinject.so is loaded as a DT_NEEDED
+// dependency of a game native library.
+// No JNI_OnLoad needed — we don't go through System.loadLibrary.
 // ===========================================================================
 
-extern "C" JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
-    LOGI("=== JNI_OnLoad: inject library loaded ===");
+__attribute__((constructor))
+static void inject_init() {
+    LOGI("=== inject_init: library loaded via ELF dependency ===");
 
     // Spawn background thread to wait for libGame.so and install hooks
     pthread_t initTid;
     pthread_create(&initTid, nullptr, InitThread, nullptr);
     pthread_detach(initTid);
 
-    LOGI("Init thread spawned, returning to app startup");
-    return JNI_VERSION_1_6;
+    LOGI("Init thread spawned, returning to linker");
 }
