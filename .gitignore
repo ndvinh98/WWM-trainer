@@ -22,4 +22,5 @@ superpowers/
 .agent/
 WWM_APK/
 WWM_APK.zip
-build/
+build*/
+output/

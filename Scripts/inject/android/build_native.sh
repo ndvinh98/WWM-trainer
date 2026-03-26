@@ -10,7 +10,11 @@ if [ -z "$NDK" ] || [ ! -d "$NDK" ]; then
     exit 1
 fi
 
-BUILD_DIR="$SCRIPT_DIR/native/build_arm64"
+BUILD_DIR="$SCRIPT_DIR/native/build"
+# Clean stale build to avoid FetchContent conflicts
+if [ -d "$BUILD_DIR" ]; then
+    rm -rf "$BUILD_DIR" 2>/dev/null || true
+fi
 mkdir -p "$BUILD_DIR"
 
 cmake -S "$SCRIPT_DIR/native" -B "$BUILD_DIR" \

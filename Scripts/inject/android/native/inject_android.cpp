@@ -307,51 +307,80 @@ static void* TcpServerThread(void*) {
 // JNI_OnLoad — entry point when System.loadLibrary("inject") is called
 // ===========================================================================
 
-extern "C" JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
-    LOGI("=== JNI_OnLoad: inject library loaded ===");
+// ---------------------------------------------------------------------------
+// Background init thread — polls until libGame.so is loaded, then hooks
+// ---------------------------------------------------------------------------
+static void* InitThread(void* /*arg*/) {
+    LOGI("[init] Waiting for libGame.so to load...");
 
-    // Step 1: Find libGame.so .text segment
-    dl_iterate_phdr(dl_callback, &g_gameText);
-    if (g_gameText.base == 0 || g_gameText.size == 0) {
-        LOGE("FATAL: libGame.so .text not found");
-        return JNI_VERSION_1_6;
+    // Poll every 500ms for up to 120 seconds
+    for (int i = 0; i < 240; ++i) {
+        dl_iterate_phdr(dl_callback, &g_gameText);
+        if (g_gameText.base != 0 && g_gameText.size != 0)
+            break;
+        // Reset for next attempt
+        g_gameText.base = 0;
+        g_gameText.size = 0;
+        usleep(500 * 1000);  // 500ms
     }
 
-    // Step 2: Pattern scan for lua_load
+    if (g_gameText.base == 0 || g_gameText.size == 0) {
+        LOGE("[init] Timed out waiting for libGame.so (120s)");
+        return nullptr;
+    }
+    LOGI("[init] libGame.so found, scanning for signatures...");
+
+    // Pattern scan for lua_load
     uintptr_t luaLoadAddr = ScanForFunction(
         LUA_LOAD_SIGS, LUA_LOAD_SIG_COUNT, &g_gameText, "lua_load");
 
-    // Step 3: Pattern scan for lua_pcall
+    // Pattern scan for lua_pcall
     uintptr_t luaPcallAddr = ScanForFunction(
         LUA_PCALL_SIGS, LUA_PCALL_SIG_COUNT, &g_gameText, "lua_pcall");
 
     if (!luaLoadAddr || !luaPcallAddr) {
-        LOGE("FATAL: signature scan failed (load=0x%lx, pcall=0x%lx)",
+        LOGE("[init] Signature scan failed (load=0x%lx, pcall=0x%lx)",
              (unsigned long)luaLoadAddr, (unsigned long)luaPcallAddr);
-        return JNI_VERSION_1_6;
+        return nullptr;
     }
 
     oLua_Load = (tLua_Load)luaLoadAddr;
 
-    // Step 4: Install Dobby hook on lua_pcall
+    // Install Dobby hook on lua_pcall
     int ret = DobbyHook(
         (void*)luaPcallAddr,
-        (dobby_dummy_func_t)hkLua_Pcall,
-        (dobby_dummy_func_t*)&oLua_Pcall
+        (void*)hkLua_Pcall,
+        (void**)&oLua_Pcall
     );
     if (ret != 0) {
-        LOGE("DobbyHook failed: %d", ret);
-        return JNI_VERSION_1_6;
+        LOGE("[init] DobbyHook failed: %d", ret);
+        return nullptr;
     }
-    LOGI("Hook installed. lua_load=0x%lx, lua_pcall=0x%lx (hooked)",
+    LOGI("[init] Hook installed. lua_load=0x%lx, lua_pcall=0x%lx",
          (unsigned long)luaLoadAddr, (unsigned long)luaPcallAddr);
 
-    // Step 5: Start TCP command server
+    // Start TCP command server
     g_tcpRunning.store(true);
     pthread_t tid;
     pthread_create(&tid, nullptr, TcpServerThread, nullptr);
     pthread_detach(tid);
 
-    LOGI("TCP server started on port %d. Ready.", TCP_PORT);
+    LOGI("[init] TCP server started on port %d. Ready.", TCP_PORT);
+    return nullptr;
+}
+
+// ===========================================================================
+// JNI_OnLoad — entry point when System.loadLibrary("inject") is called
+// ===========================================================================
+
+extern "C" JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved) {
+    LOGI("=== JNI_OnLoad: inject library loaded ===");
+
+    // Spawn background thread to wait for libGame.so and install hooks
+    pthread_t initTid;
+    pthread_create(&initTid, nullptr, InitThread, nullptr);
+    pthread_detach(initTid);
+
+    LOGI("Init thread spawned, returning to app startup");
     return JNI_VERSION_1_6;
 }
