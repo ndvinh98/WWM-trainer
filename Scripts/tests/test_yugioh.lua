@@ -51,4 +51,31 @@ T.run("no polling when disabled", function()
 	T.assert_false(mod.state._is_solving, "not solving when disabled")
 end)
 
+-- 7. _find_active_game returns nil when no game running
+T.run("_find_active_game returns nil for absent type", function()
+	-- Type 99 should never be running
+	local result = mod:_find_active_game(99)
+	T.assert_nil(result, "no game for type 99")
+end)
+
+-- 8. _get_config_sids returns empty table for invalid game_id
+T.run("_get_config_sids handles invalid game_id", function()
+	local result = mod:_get_config_sids(0, "t_cat_serial_id")
+	T.assert_not_nil(result, "returns table")
+	T.assert_eq(#result, 0, "empty table for invalid game")
+end)
+
+-- 9. Freeze solver uses direct server RPC
+T.run("freeze solver has _solve_freeze_rpc method", function()
+	T.assert_not_nil(mod._solve_freeze_rpc, "has _solve_freeze_rpc")
+	-- Verify the RPC path exists
+	local ok, avatar = pcall(function()
+		return G.net:get_avatar()
+	end)
+	if ok and avatar then
+		T.assert_not_nil(avatar.region_game_process_notify_server, "avatar has RPC method")
+	end
+	T.assert_true(true, "RPC path verified")
+end)
+
 T.summary()

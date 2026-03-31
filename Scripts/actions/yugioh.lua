@@ -5,9 +5,10 @@ local Yugioh = ActionBase:extend("actions.yugioh")
 
 -- ── Constants ──
 local REGION_GAME_TYPE_GUIHUO = 8
+local REGION_GAME_TYPE_FREEZE = 10
 local DEFAULT_POLL_INTERVAL = 0.5
-local DEFAULT_TP_DELAY_MIN = 1
-local DEFAULT_TP_DELAY_MAX = 3
+local DEFAULT_TP_DELAY_MIN = 0.5
+local DEFAULT_TP_DELAY_MAX = 1
 
 function Yugioh:define_state()
 	return {
@@ -65,13 +66,23 @@ function Yugioh:_start_polling()
 			return
 		end
 
-		local game_id = self:_find_active_guihuo_game()
+		-- Check for freeze games first (instant solve)
+		local freeze_id = self:_find_active_game(REGION_GAME_TYPE_FREEZE)
+		if freeze_id and not self.state._is_solving then
+			self:log("Found active FREEZE game: " .. tostring(freeze_id))
+			self.state._current_game_id = freeze_id
+			self:_start_solving_freeze(freeze_id)
+			return
+		end
+
+		-- Then check for GUIHUO games (teleport loop)
+		local game_id = self:_find_active_game(REGION_GAME_TYPE_GUIHUO)
 		if game_id and not self.state._is_solving then
 			self:log("Found active GUIHUO game: " .. tostring(game_id))
 			self.state._current_game_id = game_id
-			self:_start_solving(game_id)
-		elseif not game_id and self.state._is_solving then
-			self:log("GUIHUO game ended, stopping solver")
+			self:_start_solving_guihuo(game_id)
+		elseif not game_id and not freeze_id and self.state._is_solving then
+			self:log("Game ended, stopping solver")
 			self:_stop_solving()
 		end
 	end
@@ -89,31 +100,50 @@ end
 
 -- ── Private: Game Detection ──
 
-function Yugioh:_find_active_guihuo_game()
+function Yugioh:_find_active_game(game_type)
 	local ok, game_id = pcall(function()
 		local mp = G.main_player
 		if not mp then
 			return nil
 		end
-
-		-- Use the engine API to find running type-8 games
-		local game_ids = mp:get_all_running_region_game_id_by_type(REGION_GAME_TYPE_GUIHUO)
+		local game_ids = mp:get_all_running_region_game_id_by_type(game_type)
 		if game_ids and #game_ids > 0 then
 			return game_ids[1]
 		end
-
 		return nil
 	end)
-
 	if ok and game_id then
 		return game_id
 	end
 	return nil
 end
 
--- ── Private: Solving ──
+-- ── Private: Solving (Freeze — Type 10) ──
 
-function Yugioh:_start_solving(game_id)
+function Yugioh:_start_solving_freeze(game_id)
+	self:_stop_solving()
+	self.state._is_solving = true
+	self:_solve_freeze_rpc(game_id)
+end
+
+function Yugioh:_solve_freeze_rpc(game_id)
+	local ok, err = pcall(function()
+		local ClassUtils = require("common.classutils")
+		local data = ClassUtils.CustomMapType({ event = "completed" })
+		G.net:get_avatar():region_game_process_notify_server(game_id, data)
+	end)
+
+	if ok then
+		self:log(string.format("Freeze game %d: sent completion RPC", game_id))
+	else
+		self:log("Freeze solve error: " .. tostring(err))
+	end
+	self.state._is_solving = false
+end
+
+-- ── Private: Solving (GUIHUO — Type 8) ──
+
+function Yugioh:_start_solving_guihuo(game_id)
 	self:_stop_solving()
 	self.state._is_solving = true
 
@@ -126,7 +156,7 @@ function Yugioh:_start_solving(game_id)
 	end
 
 	-- Get ghost fire serial IDs
-	local ghost_sids = self:_get_ghost_fire_sids(game_id)
+	local ghost_sids = self:_get_config_sids(game_id, "t_ghostfire_no_list")
 	if not ghost_sids or #ghost_sids == 0 then
 		self:log("No ghost fire serial IDs found, will retry on next poll")
 		self.state._is_solving = false
@@ -139,14 +169,13 @@ function Yugioh:_start_solving(game_id)
 	self:_teleport_to_next(ghost_sids, 1)
 end
 
-function Yugioh:_get_ghost_fire_sids(game_id)
+function Yugioh:_get_config_sids(game_id, config_key)
 	local ok, sids = pcall(function()
-		-- Use player's method to get custom config for this game
 		local custom_cfg = G.main_player:get_region_game_custom_config(game_id)
 		if not custom_cfg then
 			return {}
 		end
-		local sid_list = custom_cfg:get("t_ghostfire_no_list")
+		local sid_list = custom_cfg:get(config_key)
 		if not sid_list then
 			return {}
 		end
@@ -160,7 +189,7 @@ function Yugioh:_get_ghost_fire_sids(game_id)
 	if ok then
 		return sids
 	end
-	self:log("Error getting ghost fire SIDs: " .. tostring(sids))
+	self:log("Error getting SIDs (" .. config_key .. "): " .. tostring(sids))
 	return {}
 end
 

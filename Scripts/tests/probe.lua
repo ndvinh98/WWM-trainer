@@ -1,85 +1,76 @@
--- Probe: Check GUIHUO detection using correct APIs
+-- Probe: Lowest-level freeze solve — storyline process event or direct server RPC
 local function log(msg) print("[PROBE] " .. tostring(msg)) end
-local function safe(fn, fallback)
-    local ok, val = pcall(fn)
-    return ok and val or fallback
-end
+local ClassUtils = require("common.classutils")
 
 local mp = G.main_player
+local event_consts = require("hexm.client.consts.event_consts")
 
-log(">>> TEST 1: _curr_region_game")
-local crg = safe(function() return mp._curr_region_game end, nil)
-log("  type=" .. type(crg))
-if crg then
-    local count = 0
-    pcall(function()
-        for game_id, game_obj in pairs(crg) do
-            count = count + 1
-            local gt = safe(function()
-                local cfg = G.datam.region_game_config:get(game_id, {})
-                return cfg.type
-            end, "?")
-            local cls = safe(function() return game_obj.__cname__ end, "?")
-            local server_loaded = safe(function() return game_obj.server_loaded end, "?")
-            log(string.format("  id=%s type=%s class=%s server_loaded=%s", tostring(game_id), tostring(gt), tostring(cls), tostring(server_loaded)))
-        end
-    end)
-    log("  total active=" .. count)
+local game_ids = mp:get_all_running_region_game_id_by_type(10)
+if not game_ids or #game_ids == 0 then
+    log("No active freeze game")
+    return
 end
+local game_id = game_ids[1]
+log("game_id=" .. tostring(game_id))
 
-log(">>> TEST 2: get_all_running_region_game_id_by_type(8)")
-local type8_ids = safe(function()
-    return mp:get_all_running_region_game_id_by_type(8)
-end, nil)
-log("  result type=" .. type(type8_ids))
-if type8_ids then
-    pcall(function()
-        for i, gid in pairs(type8_ids) do
-            log("  found game_id=" .. tostring(gid))
-        end
-    end)
-end
+-- Check initial state
+log("Games running BEFORE: " .. tostring(#game_ids))
 
-log(">>> TEST 3: Nearby type-8 from config (datam)")
-local player_pos = safe(function() return mp:get_position() end, nil)
-log("  player_pos=" .. tostring(player_pos))
+-- ── APPROACH 1: Direct server RPC ──
+log(">>> APPROACH 1: region_game_process_notify_server")
+local ok1, err1 = pcall(function()
+    local avatar = G.net:get_avatar()
+    log("  avatar=" .. tostring(avatar) .. " type=" .. type(avatar))
+    log("  has method=" .. tostring(avatar.region_game_process_notify_server ~= nil))
+
+    -- Try with CustomMapType (server RPC expects dict)
+    local data = ClassUtils.CustomMapType({ event = "completed" })
+    avatar:region_game_process_notify_server(game_id, data)
+    log("  RPC sent with CustomMapType")
+end)
+log("  ok=" .. tostring(ok1) .. " err=" .. tostring(err1))
+
+-- Check if game ended
 pcall(function()
-    for game_id, cfg in pairs(G.datam.region_game_config) do
-        local gt = cfg.type
-        if gt == 8 then
-            local pos = cfg.position
-            if pos and player_pos then
-                local dx = player_pos.x - pos[1]
-                local dy = player_pos.y - pos[2]
-                local dz = player_pos.z - pos[3]
-                local dist = math.sqrt(dx*dx + dy*dy + dz*dz)
-                if dist < 50 then
-                    log(string.format("  NEARBY game_id=%s dist=%.1f", tostring(game_id), dist))
-                    -- Check if it's in _curr_region_game
-                    local in_curr = safe(function() return crg:contains(game_id) end, false)
-                    log("    in _curr_region_game=" .. tostring(in_curr))
-                    -- Try to get custom config
-                    local custom_cfg = safe(function()
-                        return mp:get_region_game_custom_config(game_id)
-                    end, nil)
-                    log("    custom_config type=" .. type(custom_cfg))
-                    if custom_cfg then
-                        local ghost_list = safe(function()
-                            return custom_cfg:get("t_ghostfire_no_list")
-                        end, nil)
-                        log("    t_ghostfire_no_list=" .. tostring(ghost_list))
-                        if ghost_list then
-                            pcall(function()
-                                for idx, sid in pairs(ghost_list) do
-                                    local entity = safe(function() return G.space:get_entity_by_serial_no(sid) end, nil)
-                                    local epos = entity and safe(function() return entity:get_position() end, nil)
-                                    log(string.format("      sid=%s entity=%s pos=%s", tostring(sid), tostring(entity ~= nil), tostring(epos)))
-                                end
-                            end)
-                        end
-                    end
-                end
-            end
+    local still = mp:get_all_running_region_game_id_by_type(10)
+    log("  Games running AFTER RPC: " .. tostring(still and #still or 0))
+end)
+
+-- If still running, try plain table
+if ok1 then
+    pcall(function()
+        local still = mp:get_all_running_region_game_id_by_type(10)
+        if still and #still > 0 then
+            log(">>> Retry with to_valid_dict()")
+            local data2 = ClassUtils.CustomMapType({ event = "completed" }):to_valid_dict()
+            log("  data2 type=" .. type(data2))
+            G.net:get_avatar():region_game_process_notify_server(game_id, data2)
         end
+    end)
+end
+
+-- ── APPROACH 2: Dispatch storyline process event ──
+log(">>> APPROACH 2: E_REGION_GAME_STORYLINE_PROCESS dispatch")
+pcall(function()
+    local still = mp:get_all_running_region_game_id_by_type(10)
+    if still and #still > 0 then
+        local E = event_consts.E_REGION_GAME_STORYLINE_PROCESS
+        log("  E_REGION_GAME_STORYLINE_PROCESS=" .. tostring(E))
+
+        -- Create data as CustomMapType (has :get method)
+        local kwargs = ClassUtils.CustomMapType({ event = "completed" })
+        local data = ClassUtils.CustomMapType({
+            game_id = game_id,
+            kwargs = kwargs,
+        })
+        mp.dispatcher:dispatch(E, data)
+        log("  Dispatched with CustomMapType")
     end
 end)
+
+pcall(function()
+    local still = mp:get_all_running_region_game_id_by_type(10)
+    log("  Games running AFTER dispatch: " .. tostring(still and #still or 0))
+end)
+
+log(">>> PROBE COMPLETE")

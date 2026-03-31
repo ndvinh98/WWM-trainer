@@ -305,7 +305,7 @@ MenuConfig.TABS = {
 			{
 				id = "yugioh_auto",
 				type = "toggle",
-				label = "Yu-Gi-Oh Master",
+				label = "Yu-Gi-Oh",
 				on_action = function()
 					if MenuController then
 						MenuController.handle_yugioh_auto(true)
