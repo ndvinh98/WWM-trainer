@@ -75,6 +75,8 @@ local action_files = {
 	"rhythm_game",
 	"archery_master",
 	"fishing_master",
+	"yugioh",
+	"auto_proximity",
 }
 
 local function load_action_modules()
@@ -132,6 +134,8 @@ local test_suites = {
 	"test_target_shoot",
 	"test_archery_master",
 	"test_fishing_master",
+	"test_yugioh",
+	"test_auto_proximity",
 }
 
 local suite_ok, suite_fail = 0, 0

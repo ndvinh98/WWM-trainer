@@ -169,26 +169,26 @@ MenuConfig.TABS = {
 					end
 				end,
 			},
-			{
-				id = "speed",
-				type = "cycle",
-				label = "Speed",
-				values = { 1.0, 1.5, 5.0, 20.0 },
-				labels = { "Speed: OFF", "Speed: 1.5x", "Speed: 5x", "Speed: 20x" },
-				action = MenuController and MenuController.handle_speed,
-			},
-			{
-				id = "kill_npc",
-				type = "action",
-				label = "Kill NPC",
-				action = MenuController and MenuController.handle_kill_npc,
-			},
-			{
-				id = "reset_crime",
-				type = "action",
-				label = "Reset Crime",
-				action = MenuController and MenuController.handle_reset_crime,
-			},
+			-- {
+			-- 	id = "speed",
+			-- 	type = "cycle",
+			-- 	label = "Speed",
+			-- 	values = { 1.0, 1.5, 5.0, 20.0 },
+			-- 	labels = { "Speed: OFF", "Speed: 1.5x", "Speed: 5x", "Speed: 20x" },
+			-- 	action = MenuController and MenuController.handle_speed,
+			-- },
+			-- {
+			-- 	id = "kill_npc",
+			-- 	type = "action",
+			-- 	label = "Kill NPC",
+			-- 	action = MenuController and MenuController.handle_kill_npc,
+			-- },
+			-- {
+			-- 	id = "reset_crime",
+			-- 	type = "action",
+			-- 	label = "Reset Crime",
+			-- 	action = MenuController and MenuController.handle_reset_crime,
+			-- },
 		},
 	},
 	-- ========================================

@@ -20,13 +20,8 @@ end
 -- Load action modules: use Reg.module() first (returns existing instance),
 -- fall back to dofile only for first load or non-ActionBase modules.
 local function get_action(name)
-	-- Try registered module first (preserves state across calls)
-	-- local mod = Reg.module("actions." .. name)
-	-- if mod then
-	-- 	return mod
-	-- end
-
-	-- First load: dofile to create and register the module
+	-- Always dofile to pick up code changes during development.
+	-- Modules that need singleton behavior guard themselves (e.g. trace.lua).
 	local path = Constants.SCRIPTS_ROOT .. "\\actions\\" .. name .. ".lua"
 	local ok, result = pcall(dofile, path)
 	if ok then
@@ -260,6 +255,30 @@ function MenuController.handle_fishing_master_auto(enabled)
 		return
 	end
 	FishingMaster:set_auto_play(enabled)
+end
+
+function MenuController.handle_yugioh_auto(enabled)
+	local Yugioh = get_action("yugioh")
+	if not Yugioh then
+		return
+	end
+	Yugioh:set_auto_play(enabled)
+end
+
+function MenuController.handle_auto_proximity(enabled)
+	local AutoProximity = get_action("auto_proximity")
+	if not AutoProximity then
+		return
+	end
+	if enabled then
+		if AutoProximity.enable then
+			pcall(AutoProximity.enable, AutoProximity)
+		end
+	else
+		if AutoProximity.disable then
+			pcall(AutoProximity.disable, AutoProximity)
+		end
+	end
 end
 
 function MenuController.handle_auto_collect_rewards(enabled)

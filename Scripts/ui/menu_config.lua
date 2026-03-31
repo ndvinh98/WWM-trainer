@@ -202,25 +202,40 @@ MenuConfig.TABS = {
 				end,
 			},
 			{
-				id = "speed",
-				type = "cycle",
-				label = "Speed",
-				values = { 1.0, 1.5, 5.0, 20.0 },
-				labels = { "Speed: OFF", "Speed: 1.5x", "Speed: 5x", "Speed: 20x" },
-				action = MenuController and MenuController.handle_speed,
+				id = "auto_proximity",
+				type = "toggle",
+				label = "Auto Proximity",
+				on_action = function()
+					if MenuController then
+						MenuController.handle_auto_proximity(true)
+					end
+				end,
+				off_action = function()
+					if MenuController then
+						MenuController.handle_auto_proximity(false)
+					end
+				end,
 			},
-			{
-				id = "kill_npc",
-				type = "action",
-				label = "Kill NPC",
-				action = MenuController and MenuController.handle_kill_npc,
-			},
-			{
-				id = "reset_crime",
-				type = "action",
-				label = "Reset Crime",
-				action = MenuController and MenuController.handle_reset_crime,
-			},
+			-- {
+			-- 	id = "speed",
+			-- 	type = "cycle",
+			-- 	label = "Speed",
+			-- 	values = { 1.0, 1.5, 5.0, 20.0 },
+			-- 	labels = { "Speed: OFF", "Speed: 1.5x", "Speed: 5x", "Speed: 20x" },
+			-- 	action = MenuController and MenuController.handle_speed,
+			-- },
+			-- {
+			-- 	id = "kill_npc",
+			-- 	type = "action",
+			-- 	label = "Kill NPC",
+			-- 	action = MenuController and MenuController.handle_kill_npc,
+			-- },
+			-- {
+			-- 	id = "reset_crime",
+			-- 	type = "action",
+			-- 	label = "Reset Crime",
+			-- 	action = MenuController and MenuController.handle_reset_crime,
+			-- },
 			{
 				id = "archery_master",
 				type = "action",
@@ -230,7 +245,7 @@ MenuConfig.TABS = {
 			{
 				id = "pitchpot_auto",
 				type = "toggle",
-				label = "Pitchpot Auto-Play",
+				label = "Pitchpot Master",
 				on_action = function()
 					if MenuController then
 						MenuController.handle_pitchpot_auto(true)
@@ -245,7 +260,7 @@ MenuConfig.TABS = {
 			{
 				id = "rhythm_auto_perfect",
 				type = "toggle",
-				label = "Rhythm Auto-Perfect",
+				label = "Rhythm Master",
 				on_action = function()
 					if MenuController then
 						MenuController.handle_rhythm_auto_perfect(true)
@@ -260,7 +275,7 @@ MenuConfig.TABS = {
 			{
 				id = "fishing_master_auto",
 				type = "toggle",
-				label = "Fishing Auto-Play",
+				label = "Fishing Master",
 				on_action = function()
 					if MenuController then
 						MenuController.handle_fishing_master_auto(true)
@@ -284,6 +299,21 @@ MenuConfig.TABS = {
 				off_action = function()
 					if MenuController then
 						MenuController.handle_auto_collect_rewards(false)
+					end
+				end,
+			},
+			{
+				id = "yugioh_auto",
+				type = "toggle",
+				label = "Yu-Gi-Oh Master",
+				on_action = function()
+					if MenuController then
+						MenuController.handle_yugioh_auto(true)
+					end
+				end,
+				off_action = function()
+					if MenuController then
+						MenuController.handle_yugioh_auto(false)
 					end
 				end,
 			},

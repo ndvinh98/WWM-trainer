@@ -877,4 +877,11 @@ TRACE_STATE.stop = function()
 	end
 end
 
+-- Singleton guard: if an instance is already registered (e.g. actively tracing),
+-- return it instead of creating a new one that would orphan the debug hook.
+local existing = _G.Reg.module("actions.trace")
+if existing then
+	return existing
+end
+
 return Trace:new()
