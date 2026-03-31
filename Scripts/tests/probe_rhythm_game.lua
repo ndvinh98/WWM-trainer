@@ -1,9 +1,9 @@
 -- Scripts/tests/probe_rhythm_game.lua
 -- Probe: Discover API shape for rhythm game scoring hooks
--- Run: dofile('C:/temp/Where Winds Meet/Scripts/tests/probe_rhythm_game.lua')
+-- Run: dofile(_G.SCRIPTS_PATH .. '\\tests\\probe_rhythm_game.lua')
 
 pcall(function()
-	local f = io.open("C:/temp/Where Winds Meet/Scripts/logs/probe_rhythm_game.txt", "w")
+	local f = io.open(_G.SCRIPTS_PATH .. "\\logs\\probe_rhythm_game.txt", "w")
 	if f then
 		f:close()
 	end

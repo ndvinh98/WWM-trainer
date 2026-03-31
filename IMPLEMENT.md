@@ -56,7 +56,7 @@ cd 'C:\temp\Where Winds Meet'
 & ".venv\Scripts\python.exe" Scripts/inject/run.py lua "print(type(G.main_player.some_method))"
 
 # Run arbitrary Lua file (fallback, for special cases only)
-& ".venv\Scripts\python.exe" Scripts/inject/debug.py "dofile('C:/temp/Where Winds Meet/Scripts/path/to/file.lua')"
+& ".venv\Scripts\python.exe" Scripts/inject/debug.py "dofile('F:/Coding/Where Winds Meet/Scripts/path/to/file.lua')"
 ```
 
 **Important:** `Server reply: OK` only means the pipe accepted the message. Always **read the log file** to confirm actual success.
@@ -142,7 +142,7 @@ Then **read** `Scripts/logs/test_results.txt` — the new tests should show as F
 ### Minimum 5 tests per module (mandatory)
 
 ```lua
-local T = dofile("C:\\temp\\Where Winds Meet\\Scripts\\tests\\run_test.lua")
+local T = dofile("F:\\Coding\\Where Winds Meet\\Scripts\\tests\\run_test.lua")
 T.reset()
 
 local Reg = _G.Reg

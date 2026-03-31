@@ -1,6 +1,6 @@
 -- Scripts/tests/run_test.lua
 -- Lightweight test runner for injectable tests
--- Usage: local T = dofile("C:\\temp\\Where Winds Meet\\Scripts\\tests\\run_test.lua")
+-- Usage: local T = dofile(_G.SCRIPTS_PATH .. "\\tests\\run_test.lua")
 --        T.run("test name", function() ... end)
 
 local T = {}

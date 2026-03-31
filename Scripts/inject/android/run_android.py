@@ -32,28 +32,13 @@ def cmd_push() -> int:
             print(f"  Pushing {subdir}/...")
             subprocess.run(["adb", "push", str(src) + "/", dst], check=True)
 
-    # Push Test.lua (entry point) — rewrite paths
+    # Push Test.lua (entry point)
     test_lua = SCRIPTS_DIR / "Test.lua"
     if test_lua.exists():
-        content = test_lua.read_text(encoding="utf-8")
-        content = content.replace(
-            'C:\\\\temp\\\\Where Winds Meet\\\\Scripts\\\\',
-            DEVICE_SCRIPTS + "/"
-        ).replace(
-            "C:\\\\temp\\\\Where Winds Meet\\\\Scripts\\\\",
-            DEVICE_SCRIPTS + "/"
-        ).replace(
-            'C:\\temp\\Where Winds Meet\\Scripts\\',
-            DEVICE_SCRIPTS + "/"
-        )
-        # Write to temp and push
-        tmp = Path(__file__).parent / "tmp_Test.lua"
-        tmp.write_text(content, encoding="utf-8")
         subprocess.run(
-            ["adb", "push", str(tmp), f"{DEVICE_SCRIPTS}/Test.lua"],
+            ["adb", "push", str(test_lua), f"{DEVICE_SCRIPTS}/Test.lua"],
             check=True
         )
-        tmp.unlink()
 
     print("  Done. Scripts pushed to device.")
     return 0

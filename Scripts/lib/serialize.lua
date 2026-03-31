@@ -3,7 +3,7 @@
 -- ============================================================
 -- Extracted from utils.lua — only contains custom logic not in the runtime.
 
-local _ROOT = "C:\\temp\\Where Winds Meet\\Scripts"
+local _ROOT = _G.SCRIPTS_PATH
 local inspect = dofile(_ROOT .. "\\lib\\inspect.lua")
 
 local Serialize = {}

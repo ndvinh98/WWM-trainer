@@ -512,7 +512,6 @@ def main():
             script_dir.parent / 'unluac' / 'unluac.jar',
             script_dir.parent / 'lib' / 'unluac.jar',
             Path('Scripts/lib/unluac.jar'),
-            Path('C:/temp/Where Winds Meet/Scripts/lib/unluac.jar'),
         ]
         unluac_jar = None
         for c in candidates:

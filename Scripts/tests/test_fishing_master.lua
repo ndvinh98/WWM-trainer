@@ -1,5 +1,5 @@
 -- Scripts/tests/test_fishing_master.lua
-local T = dofile("C:\\temp\\Where Winds Meet\\Scripts\\tests\\run_test.lua")
+local T = dofile(_G.SCRIPTS_PATH .. "\\tests\\run_test.lua")
 T.reset()
 
 local Reg = _G.Reg

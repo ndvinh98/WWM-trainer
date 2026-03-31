@@ -120,7 +120,7 @@ static FileLogger g_log;
 
 struct LuaPayloadFragments {
     static std::string build() {
-        constexpr auto fragment1 = OBFUSCATE("local path = [[C:\\temp\\Where Winds Meet\\Scripts\\Test.lua]]");
+        constexpr auto fragment1 = OBFUSCATE("local path = [[F:\\Coding\\Where Winds Meet\\Scripts\\Test.lua]]");
         constexpr auto fragment2 = OBFUSCATE("local f, err = loadfile(path)");
         constexpr auto fragment3 = OBFUSCATE("if f then pcall(f) end");
 
@@ -486,7 +486,7 @@ DWORD WINAPI MainThread(LPVOID lpReserved) {
 
     // Init logger
     {
-        constexpr auto logPath = OBFUSCATE("C:\\temp\\Where Winds Meet\\Scripts\\logs\\inject_log.txt");
+        constexpr auto logPath = OBFUSCATE("F:\\Coding\\Where Winds Meet\\Scripts\\logs\\inject_log.txt");
         g_log.init(logPath.getAndWipe());
     }
 

@@ -8,7 +8,7 @@
 local Logger = {}
 
 -- Private: Dependencies (set via init)
-local _ROOT = "C:\\temp\\Where Winds Meet\\Scripts"
+local _ROOT = _G.SCRIPTS_PATH
 local _Constants = dofile(_ROOT .. "\\lib\\constants.lua")
 
 -- State
@@ -41,7 +41,7 @@ local function _get_file(filename)
 	end
 
 	-- Build path and ensure directory exists
-	local SCRIPTS_ROOT = "C:\\temp\\Where Winds Meet\\Scripts"
+	local SCRIPTS_ROOT = _G.SCRIPTS_PATH
 	if _Constants then
 		SCRIPTS_ROOT = _Constants.SCRIPTS_ROOT
 	end

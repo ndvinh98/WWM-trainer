@@ -1,5 +1,5 @@
 -- Scripts/tests/test_hook_manager.lua
-local T = dofile("C:\\temp\\Where Winds Meet\\Scripts\\tests\\run_test.lua")
+local T = dofile(_G.SCRIPTS_PATH .. "\\tests\\run_test.lua")
 T.reset()
 
 local Reg = _G.Reg
@@ -16,12 +16,12 @@ T.run("HookManager is a table", function()
 end)
 
 T.run("derive_module_name", function()
-	local name = HookManager.derive_module_name("C:\\temp\\Where Winds Meet\\Scripts\\actions\\combat.lua")
+	local name = HookManager.derive_module_name(_G.SCRIPTS_PATH .. "\\actions\\combat.lua")
 	T.assert_eq(name, "actions.combat", "derived name")
 end)
 
 T.run("derive_module_name with different file", function()
-	local name = HookManager.derive_module_name("C:\\temp\\Where Winds Meet\\Scripts\\actions\\world.lua")
+	local name = HookManager.derive_module_name(_G.SCRIPTS_PATH .. "\\actions\\world.lua")
 	T.assert_eq(name, "actions.world", "derived name")
 end)
 

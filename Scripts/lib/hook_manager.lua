@@ -65,7 +65,7 @@ end
 -- ────────────────────────────────────────────────────────────
 
 function HookManager.derive_module_name(filepath)
-	local scripts_root = "C:\\temp\\Where Winds Meet\\Scripts\\"
+	local scripts_root = (_G.SCRIPTS_PATH or "") .. "\\"
 	-- Normalize separators
 	local path = filepath:gsub("/", "\\")
 	-- Strip scripts root

@@ -19,7 +19,7 @@ local Trace = ActionBase:extend("actions.trace")
 -- CONSTANTS
 -- ============================================================
 local BASE_PATH = Constants and (Constants.SCRIPTS_ROOT .. "\\traces\\")
-	or "C:\\temp\\Where Winds Meet\\Scripts\\traces\\"
+	or ((_G.SCRIPTS_PATH or ".") .. "\\traces\\")
 
 local SKIP_SRC_PREFIXES = {
 	"engine/",
@@ -53,7 +53,7 @@ local SKIP_SRC_PREFIXES = {
 	"hexm/client/entities/local/component/",
 	"hexm/client/entities/server/",
 	"hexm/client/manager/",
-	"C:\\temp\\Where Winds Meet\\Scripts",
+	(_G.SCRIPTS_PATH or ""),
 }
 
 local SKIP_FUNC_NAMES = {

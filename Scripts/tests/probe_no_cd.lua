@@ -1,9 +1,9 @@
 -- Scripts/tests/probe_no_cd.lua
 -- Probe: Check current hook state and is_skill_in_cd behavior
--- Run: dofile('C:/temp/Where Winds Meet/Scripts/tests/probe_no_cd.lua')
+-- Run: dofile(_G.SCRIPTS_PATH .. '\\tests\\probe_no_cd.lua')
 
 pcall(function()
-	local f = io.open("C:/temp/Where Winds Meet/Scripts/logs/probe_no_cd.txt", "w")
+	local f = io.open(_G.SCRIPTS_PATH .. "\\logs\\probe_no_cd.txt", "w")
 	if f then
 		f:close()
 	end

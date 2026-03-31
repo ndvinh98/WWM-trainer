@@ -1,9 +1,9 @@
 -- Scripts/tests/probe_pitchpot.lua
 -- Probe: Discover API shape for pitchpot minigame
--- Run: dofile('C:/temp/Where Winds Meet/Scripts/tests/probe_pitchpot.lua')
+-- Run: dofile(_G.SCRIPTS_PATH .. '\\tests\\probe_pitchpot.lua')
 
 pcall(function()
-	local f = io.open("C:/temp/Where Winds Meet/Scripts/logs/probe_pitchpot.txt", "w")
+	local f = io.open(_G.SCRIPTS_PATH .. "\\logs\\probe_pitchpot.txt", "w")
 	if f then
 		f:close()
 	end

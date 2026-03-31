@@ -8,11 +8,12 @@ Usage:
 
 import sys
 import os
+from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from debug import send_to_lua_gate
 
-ROOT = "C:/temp/Where Winds Meet/Scripts"
+ROOT = str(Path(__file__).resolve().parent.parent).replace("\\", "/")
 
 COMMANDS = {
     "test": f"dofile('{ROOT}/tests/run_all.lua')",

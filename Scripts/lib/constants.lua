@@ -9,7 +9,7 @@ local Constants = {}
 Constants.GLOBAL_PREFIX = "KURO"
 
 -- Base path (auto-detect from current script location if possible)
-Constants.SCRIPTS_ROOT = "C:\\temp\\Where Winds Meet\\Scripts"
+Constants.SCRIPTS_ROOT = _G.SCRIPTS_PATH
 
 -- Derived paths
 Constants.LIB_ROOT = Constants.SCRIPTS_ROOT .. "\\lib"
@@ -19,7 +19,7 @@ Constants.DATA_ROOT = Constants.SCRIPTS_ROOT .. "\\data"
 Constants.LOGS_ROOT = Constants.SCRIPTS_ROOT .. "\\logs"
 
 -- Output paths
-Constants.LUA_DEBUGGING_ROOT = "C:\\temp\\Where Winds Meet\\Scripts\\dumped"
+Constants.LUA_DEBUGGING_ROOT = Constants.SCRIPTS_ROOT .. "\\dumped"
 Constants.TRACES_ROOT = Constants.SCRIPTS_ROOT .. "\\traces"
 Constants.TESTS_ROOT = Constants.SCRIPTS_ROOT .. "\\tests"
 Constants.BACKUP_ROOT = Constants.SCRIPTS_ROOT .. "\\backup"

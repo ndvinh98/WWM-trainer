@@ -15,7 +15,19 @@
 --   2. Add new tabs/items to ui/menu_config.lua
 -- ============================================================
 
-local SCRIPTS_PATH = "C:\\temp\\Where Winds Meet\\Scripts\\"
+-- Auto-detect Scripts path from this file's location
+local function _detect_scripts_path()
+	local info = debug.getinfo(1, "S")
+	local src = info and info.source or ""
+	if src:sub(1, 1) == "@" then
+		src = src:sub(2)
+	end
+	src = src:gsub("/", "\\")
+	-- Strip filename (e.g. \Test.lua) to get the directory
+	return src:match("^(.+)\\") or "."
+end
+_G.SCRIPTS_PATH = _detect_scripts_path()
+local SCRIPTS_PATH = _G.SCRIPTS_PATH .. "\\"
 
 -- ============================================================
 -- 1) LOAD BOOTSTRAP (Foundation)

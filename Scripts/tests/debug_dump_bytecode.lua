@@ -1,7 +1,7 @@
 -- Debug script: Inject into game to diagnose dump_bytecode issues
--- Usage: dofile('C:/temp/Where Winds Meet/Scripts/tests/debug_dump_bytecode.lua')
+-- Usage: dofile(_G.SCRIPTS_PATH .. '\\tests\\debug_dump_bytecode.lua')
 
-local _ROOT = "C:\\temp\\Where Winds Meet\\Scripts"
+local _ROOT = _G.SCRIPTS_PATH
 local LOG_PATH = _ROOT .. "\\logs\\debug_dump_bytecode.txt"
 
 local _output = {}

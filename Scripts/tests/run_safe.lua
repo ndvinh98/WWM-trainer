@@ -1,5 +1,5 @@
 -- run_safe.lua: pcall wrapper that writes all output to a log file
-local LOG_PATH = "C:\\temp\\Where Winds Meet\\Scripts\\logs\\test_results.txt"
+local LOG_PATH = _G.SCRIPTS_PATH .. "\\logs\\test_results.txt"
 
 -- Capture all print output
 local _output = {}
@@ -28,7 +28,7 @@ end
 
 -- Phase 1: Bootstrap
 _log("=== PHASE 1: Bootstrap ===")
-local ok, err = pcall(dofile, "C:\\temp\\Where Winds Meet\\Scripts\\lib\\bootstrap.lua")
+local ok, err = pcall(dofile, _G.SCRIPTS_PATH .. "\\lib\\bootstrap.lua")
 if not ok then
     _log("BOOTSTRAP FAILED: " .. tostring(err))
     _flush()
@@ -45,7 +45,7 @@ _log("\n=== PHASE 2: Load Modules ===")
 local actions = { "buffs", "world", "combat", "xinfa_buffs", "weapon_skins", "spy", "gm_panel" }
 local load_ok, load_fail = 0, 0
 for _, name in ipairs(actions) do
-    local path = "C:\\temp\\Where Winds Meet\\Scripts\\actions\\" .. name .. ".lua"
+    local path = _G.SCRIPTS_PATH .. "\\actions\\" .. name .. ".lua"
     local aok, aerr = pcall(dofile, path)
     if aok then
         load_ok = load_ok + 1
@@ -63,7 +63,7 @@ local suites = { "test_bootstrap", "test_hook_manager", "test_action_base", "tes
 local s_ok, s_fail = 0, 0
 for _, name in ipairs(suites) do
     _log("\n--- " .. name .. " ---")
-    local tok, terr = pcall(dofile, "C:/temp/Where Winds Meet/Scripts/tests/" .. name .. ".lua")
+    local tok, terr = pcall(dofile, _G.SCRIPTS_PATH .. "\\tests\\" .. name .. ".lua")
     if tok then
         s_ok = s_ok + 1
     else

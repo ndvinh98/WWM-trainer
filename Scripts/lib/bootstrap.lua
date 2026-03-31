@@ -8,7 +8,7 @@
 --   local Logger = Reg.lib("Logger")
 --   local HookManager = Reg.lib("HookManager")
 
-local _ROOT = "C:\\temp\\Where Winds Meet\\Scripts"
+local _ROOT = _G.SCRIPTS_PATH
 
 -- Load constants first
 local Constants = dofile(_ROOT .. "\\lib\\constants.lua")

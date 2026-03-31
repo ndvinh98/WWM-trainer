@@ -353,4 +353,4 @@ NEXT STEPS:
 5. lua_pcall wraps lua_pcallk, zeros out k/ctx, sign-extends nargs/nresults
 6. Signature = first 16-32 bytes of function, enough to be unique in .text
 
-Results saved to: C:\temp\Where Winds Meet\Scripts\inject\sig_results_android.txt
+Results saved to: F:\Coding\Where Winds Meet\Scripts\inject\sig_results_android.txt

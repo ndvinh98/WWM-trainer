@@ -1,6 +1,6 @@
 {
   "process_name": "wwm.exe",
-  "dll_folder": "C:\\temp\\Where Winds Meet\\Scripts\\inject",
+  "dll_folder": "F:\\Coding\\Where Winds Meet\\Scripts\\inject",
   "selected_dll": "Test.dll",
   "auto_inject": true,
   "start_command": "steam://rungameid/3564740",

@@ -1,10 +1,10 @@
 -- Scripts/tests/run_all.lua
 -- Bootstrap + load action modules + run all test suites
--- Usage: dofile("C:\\temp\\Where Winds Meet\\Scripts\\tests\\run_all.lua")
--- Logs output to: C:\temp\Where Winds Meet\Scripts\logs\test_results.txt
+-- Usage: dofile(SCRIPTS_PATH .. "\\tests\\run_all.lua")
+-- Logs output to: <SCRIPTS_PATH>\logs\test_results.txt
 
-local _ROOT = "C:\\temp\\Where Winds Meet\\Scripts"
-local LOG_PATH = "C:\\temp\\Where Winds Meet\\Scripts\\logs\\test_results.txt"
+local _ROOT = _G.SCRIPTS_PATH
+local LOG_PATH = _ROOT .. "\\logs\\test_results.txt"
 
 -- Capture all print output
 local _output = {}

@@ -1,9 +1,9 @@
 -- Scripts/tests/probe_get_buff.lua
 -- Probe: Discover API shape for G.main_player:get_buff / get_buffs / get_buff_by_No
--- Run: dofile('C:/temp/Where Winds Meet/Scripts/tests/probe_get_buff.lua')
+-- Run: dofile(_G.SCRIPTS_PATH .. '\\tests\\probe_get_buff.lua')
 
 pcall(function()
-	local f = io.open("C:/temp/Where Winds Meet/Scripts/logs/probe_get_buff.txt", "w")
+	local f = io.open(_G.SCRIPTS_PATH .. "\\logs\\probe_get_buff.txt", "w")
 	if f then f:close() end
 end)
 
