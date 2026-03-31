@@ -20,7 +20,8 @@ import sys
 import time
 from pathlib import Path
 
-assert sys.maxsize > 2**32, "This injector requires 64-bit Python"
+if sys.maxsize <= 2**32:
+    raise RuntimeError("This injector requires 64-bit Python")
 
 # ---------------------------------------------------------------------------
 # Constants
