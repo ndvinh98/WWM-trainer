@@ -34,13 +34,17 @@ This is a **Lua-based game modding/support tool** for the game "Where Winds Meet
 - Traces (only if mentioned): `Scripts/traces/`
 
 
-## Data-Driven Development Workflow
+## Workflows
 
-The project follows a data-driven approach for implementing new features:
+This project uses dedicated workflow documents. **You MUST read and follow the appropriate workflow** before starting work:
 
-1.  **Identify Interest Point**: Start with a specific feature requirement or keyword provided by the user.
-2.  **Trace Analysis**: Search for relevant function calls and identifiers in the `Scripts/traces/` folder to understand execution flow if user specified.
-3.  **Code Lookup**: Locate and analyze the corresponding dumped game code in the `Source of Truth` folder based on the trace results.
-4.  **Implementation Plan**: Create a detailed plan for the feature, including hooks, logic, and UI integration.
-5.  **User Review**: Present the plan to the user for validation before proceeding with the implementation.
+| Task Type | Workflow | When to Use |
+|-----------|----------|-------------|
+| **Research / Analysis / Debug** | [`RESEARCH.md`](RESEARCH.md) | Investigating game behavior, analyzing traces, locating functions/data, debugging issues, mapping config-to-code, reverse engineering |
+| **Implementation / Fix / Extend** | [`IMPLEMENT.md`](IMPLEMENT.md) | Adding features, fixing bugs, extending scripts, writing probe tests, any code changes |
 
+**Rules:**
+- For **research/analysis/debug** tasks → read and follow `RESEARCH.md` (evidence-based investigation with scoped search, anti-overflow rules, evidence scoring, and runtime probe verification)
+- For **implementation/fix/extend** tasks → read and follow `IMPLEMENT.md` (TDD-first workflow with red-green-refactor cycle, probe-driven API discovery, and mandatory runtime verification)
+- Many tasks require **both**: research first (RESEARCH.md) to understand the system, then implement (IMPLEMENT.md) to make changes
+- Do **not** skip the workflows or inline your own ad-hoc process
