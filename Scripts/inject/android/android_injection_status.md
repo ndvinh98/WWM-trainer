@@ -63,7 +63,7 @@ To rapidly iterate, build, and test the pipeline, use the following commands in 
 ```powershell
 $env:ANDROID_HOME = "C:\Android"
 # Replace "--target-lib" with any other library to test a new host
-.venv\Scripts\python.exe Scripts\inject\android\build_apk.py --skip-native --apk-dir "C:\temp\Where Winds Meet\WWM_APK" --target-lib libandroidmainruns.so
+.venv\Scripts\python.exe Scripts\inject\android\build_apk.py --skip-native --apk-dir "F:\Coding\Where Winds Meet\WWM_APK" --target-lib libandroidmainruns.so
 ```
 *(Remove `--skip-native` if you changed C++ code).*
 

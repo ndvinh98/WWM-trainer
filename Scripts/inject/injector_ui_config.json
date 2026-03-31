@@ -1,12 +1,12 @@
 {
   "process_name": "wwm.exe",
-  "dll_folder": "F:\\Coding\\Where Winds Meet\\Scripts\\inject",
+  "dll_folder": "F:/Coding/Where Winds Meet/Scripts/inject",
   "selected_dll": "Test.dll",
-  "auto_inject": true,
+  "auto_inject": false,
   "start_command": "steam://rungameid/3564740",
   "pipe_name": "\\\\.\\pipe\\wwm_lua_gate",
   "tcp_host": "127.0.0.1",
   "tcp_port": "5555",
-  "log_file": "inject_log.txt",
+  "log_file": "-- captured output --",
   "log_max_lines": 500
 }

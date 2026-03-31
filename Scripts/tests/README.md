@@ -1,5 +1,5 @@
 ```powershell
-cd 'C:\temp\Where Winds Meet'
+cd 'F:\Coding\Where Winds Meet'
 
 # Run all tests → Scripts/logs/test_results.txt
 & ".venv\Scripts\python.exe" Scripts/inject/run.py test

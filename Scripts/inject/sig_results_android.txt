@@ -2,7 +2,7 @@
   lua_load / lua_pcall Signature Finder  (Android ARM64, static analysis)
 ==============================================================================
 
-Reading: C:\temp\Where Winds Meet\WWM_APK\arm64_extracted\lib\arm64-v8a\libGame.so
+Reading: F:\Coding\Where Winds Meet\WWM_APK\arm64_extracted\lib\arm64-v8a\libGame.so
 Size: 130.7 MB
 
 Entry point: 0x9668000
