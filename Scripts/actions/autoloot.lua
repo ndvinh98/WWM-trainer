@@ -686,9 +686,38 @@ function AutoLoot:do_scan()
 
 	local function filter_ent(ent_id, ent)
 		local ent_tag = ent.tag
-		if ent_tag:is_collect() or ent_tag:has_stroke_tag() or (ent.if_kill_reward and ent:if_kill_reward()) then
+
+		-- Blacklist: skip entities we never want to auto-interact with
+		if ent_tag:is_elevator()
+			or ent_tag:is_ladder()
+			or ent_tag:is_portal()
+			or ent_tag:is_task_entity()
+			or ent_tag:is_task_npc()
+			or ent_tag:is_main_quest_npc()
+			or ent_tag:is_scene_entity()
+			or ent_tag:is_thruster()
+			or ent_tag:is_crane()
+			or ent_tag:is_composition_item()
+			or ent_tag:is_player()
+		then
+			return false
+		end
+
+		-- Whitelist: collect-type entities
+		if ent_tag:is_collect()
+			or ent_tag:is_collect_tree()
+			or ent_tag:is_collect_grass()
+			or ent_tag:is_collect_mine()
+			or ent_tag:is_collect_animal()
+			or ent_tag:is_rare_collect()
+			or ent_tag:is_treasure_box()
+			or ent_tag:is_chiji_dead_box()
+			or ent_tag:is_destruct()
+			or (ent.if_kill_reward and ent:if_kill_reward())
+		then
 			return true
 		end
+
 		return false
 	end
 

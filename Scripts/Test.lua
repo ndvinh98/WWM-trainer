@@ -24,10 +24,9 @@ local function _detect_scripts_path()
 	end
 	src = src:gsub("/", "\\")
 	-- Strip filename (e.g. \Test.lua) to get the directory
-	return src:match("^(.+)\\") or "."
+	return src:match("^(.+)\\") .. "\\" or "."
 end
 _G.SCRIPTS_PATH = _detect_scripts_path()
-local SCRIPTS_PATH = _G.SCRIPTS_PATH .. "\\"
 
 -- ============================================================
 -- 1) LOAD BOOTSTRAP (Foundation)
