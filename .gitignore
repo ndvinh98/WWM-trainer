@@ -24,3 +24,4 @@ WWM_APK/
 WWM_APK.zip
 build*/
 output/
+.DS_Store
