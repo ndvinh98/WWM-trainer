@@ -14,7 +14,7 @@
 local ActionBase = _G.Reg.lib("ActionBase")
 local AutoLoot = ActionBase:extend("actions.autoloot")
 local Serialize = _G.Reg.lib("Serialize")
-
+local gmath = require("hexm.common.math.gmath")
 -- ============================================================
 -- Constants
 -- ============================================================
@@ -40,6 +40,7 @@ function AutoLoot:define_state()
 			log_cache = {},
 			timer_action = nil,
 			cache = {},
+			done_ttl = 5.0,
 			entity_radius = 150,
 			active_interact_radius = 20,
 			transit_radius = 150,
@@ -80,6 +81,35 @@ end
 
 function AutoLoot:_debug_entity(entity_id, msg)
 	self:_log_entity(entity_id, "[DBG] " .. msg)
+end
+
+function AutoLoot:_now()
+	return os.clock()
+end
+
+function AutoLoot:_mark_done(entity_id)
+	self.state.done[entity_id] = self:_now() + (self.state.done_ttl or 5.0)
+end
+
+function AutoLoot:_is_done(entity_id)
+	local expires_at = self.state.done[entity_id]
+	if not expires_at then
+		return false
+	end
+	if expires_at > self:_now() then
+		return true
+	end
+	self.state.done[entity_id] = nil
+	return false
+end
+
+function AutoLoot:_prune_done()
+	local now = self:_now()
+	for entity_id, expires_at in pairs(self.state.done) do
+		if expires_at <= now then
+			self.state.done[entity_id] = nil
+		end
+	end
 end
 
 -- ============================================================
@@ -188,7 +218,7 @@ function AutoLoot:_on_start_back(event, data)
 
 	self:_log(string.format("start_back | entity=%s way=%s err=%s", entity_id, way_no, err))
 	self:_cancel_pending()
-	self.state.done[entity_id] = true
+	self:_mark_done(entity_id)
 
 	if err == 0 then
 		local bd = self:_build_interact_bd(entity, way_no, comp_id)
@@ -243,7 +273,7 @@ function AutoLoot:_start_interact(entity, way_no, comp_id)
 				if self.state.pending and self.state.pending.entity_id == entity_id then
 					self:_log(string.format("TIMEOUT entity=%s way=%s — marking done", entity_id, way_no))
 					self:_cancel_pending()
-					self.state.done[entity_id] = true
+					self:_mark_done(entity_id)
 				end
 			end),
 		})
@@ -297,7 +327,7 @@ function AutoLoot:_direct_result(entity, way_no, comp_id)
 		self:_log("  RESULT ERROR: " .. tostring(e))
 	end
 
-	self.state.done[entity_id] = true
+	self:_mark_done(entity_id)
 end
 
 -- ============================================================
@@ -318,7 +348,7 @@ function AutoLoot:_on_result_back(event, data)
 
 	self:_log(string.format("result_back | entity=%s way=%s result=%s", entity_id, way_no, tostring(result)))
 	self:_cancel_pending()
-	self.state.done[entity_id] = true
+	self:_mark_done(entity_id)
 
 	if not result then
 		self:_log(string.format("  result_back FAILED data=%s — marking done", Serialize.dump_value(data)))
@@ -364,7 +394,7 @@ function AutoLoot:_direct_result_await(entity, way_no, comp_id)
 				if self.state.pending and self.state.pending.entity_id == entity_id then
 					self:_log(string.format("TIMEOUT entity=%s way=%s — marking done", entity_id, way_no))
 					self:_cancel_pending()
-					self.state.done[entity_id] = true
+					self:_mark_done(entity_id)
 				end
 			end),
 		})
@@ -414,7 +444,7 @@ function AutoLoot:_force_transit_comp_status(entity)
 	end)
 	if not interact_comp then
 		self:_debug_entity(entity_id, "  skip: no interact_comp")
-		self.state.done[entity_id] = true
+		self:_mark_done(entity_id)
 		return
 	end
 
@@ -424,7 +454,7 @@ function AutoLoot:_force_transit_comp_status(entity)
 	end)
 	if not npc_no then
 		self:_debug_entity(entity_id, "  skip: interact_comp has no No")
-		self.state.done[entity_id] = true
+		self:_mark_done(entity_id)
 		return
 	end
 
@@ -441,7 +471,7 @@ function AutoLoot:_force_transit_comp_status(entity)
 			entity_id,
 			string.format("  skip: no entity data or interact_config for No=%s", tostring(npc_no))
 		)
-		self.state.done[entity_id] = true
+		self:_mark_done(entity_id)
 		return
 	end
 
@@ -455,7 +485,7 @@ function AutoLoot:_force_transit_comp_status(entity)
 	end)
 	if not interact_config or not status_list then
 		self:_debug_entity(entity_id, "  skip: no interact_config or status list")
-		self.state.done[entity_id] = true
+		self:_mark_done(entity_id)
 		return
 	end
 
@@ -493,7 +523,7 @@ function AutoLoot:_force_transit_comp_status(entity)
 	if not transited then
 		self:_debug_entity(entity_id, "  no non-default statuses to transit to")
 	end
-	self.state.done[entity_id] = true
+	self:_mark_done(entity_id)
 end
 
 -- ============================================================
@@ -502,7 +532,7 @@ end
 
 function AutoLoot:try_interact_entity(entity)
 	local entity_id = entity.entity_id
-	if self.state.done[entity_id] then
+	if self:_is_done(entity_id) then
 		return
 	end
 
@@ -521,11 +551,12 @@ function AutoLoot:try_interact_entity(entity)
 		end
 	end
 	comp_id = comp_id or entity_id
-
+	local dist = gmath.distance(entity:get_position(), G.main_player:get_position())
 	self:_debug_entity(
 		entity_id,
 		string.format(
-			"try_interact | entity=%s comp=%s status=%s tag=%s",
+			"\t[%.1f] try_interact | entity=%s comp=%s status=%s tag=%s",
+			dist,
 			tostring(entity_id),
 			tostring(comp_id),
 			tostring(cur_status_no),
@@ -547,13 +578,13 @@ function AutoLoot:try_interact_entity(entity)
 						entity_id,
 						string.format("  skip: destroy_status=1 for status=%s", cur_status_no)
 					)
-					self.state.done[entity_id] = true
+					self:_mark_done(entity_id)
 					active_ways = nil
 					return
 				end
 			end
 		end)
-		if self.state.done[entity_id] then
+		if self:_is_done(entity_id) then
 			return
 		end
 	end
@@ -676,6 +707,7 @@ function AutoLoot:do_scan()
 	if not mp then
 		return false
 	end
+	self:_prune_done()
 
 	-- Pre-filter: use game's own collection APIs
 	mp:ride_skill_collect_nearby_collections(self.state.entity_radius)
@@ -686,9 +718,11 @@ function AutoLoot:do_scan()
 
 	local function filter_ent(ent_id, ent)
 		local ent_tag = ent.tag
+		local dist = gmath.distance(ent:get_position(), mp:get_position())
 
 		-- Blacklist: skip entities we never want to auto-interact with
-		if ent_tag:is_elevator()
+		if
+			ent_tag:is_elevator()
 			or ent_tag:is_ladder()
 			or ent_tag:is_portal()
 			or ent_tag:is_task_entity()
@@ -700,11 +734,16 @@ function AutoLoot:do_scan()
 			or ent_tag:is_composition_item()
 			or ent_tag:is_player()
 		then
+			self:_debug_entity(
+				ent_id,
+				string.format("  [%.1f] skip: blacklist %s %s", dist, tostring(ent_tag), tostring(ent))
+			)
 			return false
 		end
 
 		-- Whitelist: collect-type entities
-		if ent_tag:is_collect()
+		if
+			ent_tag:is_collect()
 			or ent_tag:is_collect_tree()
 			or ent_tag:is_collect_grass()
 			or ent_tag:is_collect_mine()
@@ -718,6 +757,22 @@ function AutoLoot:do_scan()
 			return true
 		end
 
+		-- -- custom check
+		local ok, err = pcall(function()
+			if ent.no then
+				local ent_int = G.datam.entity_interact:get(ent.no, {})
+				if ent_int and ent_int.interaction_reward then
+					return true
+				end
+			end
+		end)
+		if ok then
+			return true
+		end
+		self:_debug_entity(
+			ent_id,
+			string.format("  [%.1f] skip: blacklist %s %s", dist, tostring(ent_tag), tostring(ent))
+		)
 		return false
 	end
 

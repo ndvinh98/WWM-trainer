@@ -18,6 +18,7 @@ local _K_MOD = _PREFIX .. "_modules"
 local _K_STATE = _PREFIX .. "_state"
 local _K_HOOKS = _PREFIX .. "_hooks"
 local _K_RELOAD_HOOKS = _PREFIX .. "_reload_hooks"
+local _K_RELOAD_ENABLED = _PREFIX .. "_reload_enabled"
 
 -- ============================================================
 -- RELOAD DETECTION (must run before namespace init)
@@ -36,6 +37,7 @@ _G[_K_MOD] = _G[_K_MOD] or {}
 _G[_K_STATE] = _G[_K_STATE] or {}
 _G[_K_HOOKS] = _G[_K_HOOKS] or {}
 _G[_K_RELOAD_HOOKS] = _G[_K_RELOAD_HOOKS] or {}
+_G[_K_RELOAD_ENABLED] = _G[_K_RELOAD_ENABLED] or {}
 
 -- ── Namespace accessor (for core lib files that need raw table access) ──
 
@@ -44,7 +46,8 @@ local _NS_KEYS = {
 	modules = _K_MOD,
 	state = _K_STATE,
 	hooks = _K_HOOKS,
-	reload_hooks = _K_RELOAD_HOOKS
+	reload_hooks = _K_RELOAD_HOOKS,
+	reload_enabled = _K_RELOAD_ENABLED,
 }
 
 function Reg._ns(name)
@@ -114,6 +117,7 @@ function Reg.reset_all()
 	_G[_K_STATE] = {}
 	_G[_K_HOOKS] = {}
 	_G[_K_RELOAD_HOOKS] = {}
+	_G[_K_RELOAD_ENABLED] = {}
 end
 
 -- ── Reload support ──
@@ -147,6 +151,18 @@ function Reg.reload_all()
 	end
 	_G[_K_RELOAD_HOOKS] = reload_hooks
 
+	-- 0c. Snapshot enabled modules (handles both is_enabled and enabled flags)
+	local reload_enabled = {}
+	for name, st in pairs(_G[_K_STATE]) do
+		if type(st) == "table" and not protected[name] then
+			if st.is_enabled or st.enabled then
+				reload_enabled[name] = true
+				_log("Snapshot enabled: " .. name)
+			end
+		end
+	end
+	_G[_K_RELOAD_ENABLED] = reload_enabled
+
 	-- 1. Deactivate NON-protected hooks only
 	local HM = _G[_K_LIB].HookManager
 	if HM then
@@ -160,9 +176,15 @@ function Reg.reload_all()
 
 	-- 2. Disable NON-protected modules
 	for name, st in pairs(_G[_K_STATE]) do
-		if type(st) == "table" and st.is_enabled and not protected[name] then
-			_log("Disabling module: " .. name)
-			st.is_enabled = false
+		if type(st) == "table" and not protected[name] then
+			if st.is_enabled then
+				_log("Disabling module: " .. name)
+				st.is_enabled = false
+			end
+			if st.enabled then
+				_log("Disabling module (enabled flag): " .. name)
+				st.enabled = false
+			end
 		end
 	end
 
@@ -195,29 +217,54 @@ function Reg.restore_reloaded_modules()
 		end
 	end
 
+	-- Merge modules needing reload: those with hooks OR those that were enabled
 	local reload_hooks = _G[_K_RELOAD_HOOKS] or {}
-	local modules = {}
+	local reload_enabled = _G[_K_RELOAD_ENABLED] or {}
+	local need_reload = {}
 	for module_name in pairs(reload_hooks) do
+		need_reload[module_name] = true
+	end
+	for module_name in pairs(reload_enabled) do
+		need_reload[module_name] = true
+	end
+
+	local modules = {}
+	for module_name in pairs(need_reload) do
 		modules[#modules + 1] = module_name
 	end
 	table.sort(modules)
 
+	-- Re-load all modules that need it
 	local restored = 0
 	for _, module_name in ipairs(modules) do
 		local rel_path = module_name:gsub("%.", "\\") .. ".lua"
 		local full_path = _ROOT .. "\\" .. rel_path
-		_log("Re-loading module for hook restore: " .. module_name)
+		_log("Re-loading module: " .. module_name)
 		local ok, err = pcall(dofile, full_path)
 		if ok then
 			restored = restored + 1
 		else
 			_log("Failed to re-load module " .. module_name .. ": " .. tostring(err))
 			reload_hooks[module_name] = nil
+			reload_enabled[module_name] = nil
 		end
 	end
 
+	-- Re-enable modules that were previously enabled
+	for module_name in pairs(reload_enabled) do
+		local mod = _G[_K_MOD][module_name]
+		if mod and mod.enable then
+			_log("Re-enabling module: " .. module_name)
+			local ok, err = pcall(mod.enable, mod)
+			if not ok then
+				_log("Failed to re-enable " .. module_name .. ": " .. tostring(err))
+			end
+		end
+	end
+	_G[_K_RELOAD_ENABLED] = {}
+
 	if restored > 0 then
-		_log("Re-loaded " .. restored .. " module(s) for hook restore")
+		_log("Re-loaded " .. restored .. " module(s) for reload restore")
 	end
 
 	return restored
@@ -346,5 +393,5 @@ end
 return {
 	Reg = Reg,
 	Constants = Constants,
-	Logger = Logger
+	Logger = Logger,
 }

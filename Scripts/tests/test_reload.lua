@@ -136,11 +136,58 @@ assert_true(restored_mod, "reload snapshot module reloaded")
 assert_true(restored_mod:is_hooked("test_hook"), "previously active hook restored after module reload")
 assert_false(Reg._ns("reload_hooks")["tests.fixtures.reload_restore"], "restore intent consumed after reload")
 
+-- ── Test: reload snapshots enabled modules and re-enables them ──
+
+-- Clean slate for this test
+HookManager.clear_module("tests.fixtures.reload_enabled")
+Reg._ns("modules")["tests.fixtures.reload_enabled"] = nil
+Reg._ns("state")["tests.fixtures.reload_enabled"] = nil
+
+-- Load the fixture (timer-based module with `enabled` flag, no hooks)
+local enabled_fixture = dofile(_G.SCRIPTS_PATH .. "\\tests\\fixtures\\reload_enabled.lua")
+assert_true(enabled_fixture, "reload_enabled fixture loaded")
+
+-- Enable it (simulates user toggling ON)
+enabled_fixture:enable()
+assert_true(enabled_fixture:is_enabled(), "fixture enabled before reload")
+
+-- Simulate reload: should snapshot enabled state
+Reg.reload_all()
+
+-- Verify snapshot was taken
+assert_true(Reg._ns("reload_enabled")["tests.fixtures.reload_enabled"], "enabled module snapshotted in reload_enabled")
+
+-- Verify state was disabled during reload
+assert_false(Reg._ns("state")["tests.fixtures.reload_enabled"].enabled, "enabled flag reset during reload")
+
+-- Module instance should be cleared
+assert_false(Reg.module("tests.fixtures.reload_enabled"), "enabled module cleared after reload_all")
+
+-- Restore: should re-load AND re-enable the module
+local restore_count = Reg.restore_reloaded_modules()
+assert_true(restore_count >= 1, "restore_reloaded_modules re-loads enabled module")
+
+local restored_enabled_mod = Reg.module("tests.fixtures.reload_enabled")
+assert_true(restored_enabled_mod, "enabled module re-loaded")
+assert_true(restored_enabled_mod:is_enabled(), "enabled module re-enabled after reload")
+
+-- reload_enabled should be consumed
+local remaining = Reg._ns("reload_enabled")
+local has_entries = false
+for _ in pairs(remaining) do
+	has_entries = true
+	break
+end
+assert_false(has_entries, "reload_enabled consumed after restore")
+
 -- ── Cleanup ──
 
 HookManager.clear_module("tests.fixtures.reload_restore")
 Reg._ns("modules")["tests.fixtures.reload_restore"] = nil
 Reg._ns("state")["tests.fixtures.reload_restore"] = nil
+HookManager.clear_module("tests.fixtures.reload_enabled")
+Reg._ns("modules")["tests.fixtures.reload_enabled"] = nil
+Reg._ns("state")["tests.fixtures.reload_enabled"] = nil
 Reg._ns("modules")["test.reload_mod"] = nil
 Reg._ns("state")["test.reload_mod"] = nil
 Reg._ns("modules")["test.fake_module"] = nil

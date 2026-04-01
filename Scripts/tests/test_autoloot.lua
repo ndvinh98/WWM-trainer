@@ -28,6 +28,7 @@ T.run("state defaults are correct", function()
 	T.assert_eq(autoloot.state.entity_radius, 150, "entity_radius=150")
 	T.assert_eq(autoloot.state.active_interact_radius, 20, "active_interact_radius=20")
 	T.assert_eq(autoloot.state.transit_radius, 150, "transit_radius=150")
+	T.assert_eq(autoloot.state.done_ttl, 5.0, "done_ttl=5.0")
 end)
 
 T.run("enable/disable lifecycle", function()
@@ -55,6 +56,34 @@ T.run("reset clears state", function()
 	autoloot:reset()
 	T.assert_nil(autoloot.state.done["test"])
 	T.assert_eq(next(autoloot.state.done), nil, "done is empty")
+end)
+
+T.run("done cache expires after ttl", function()
+	local orig_now = autoloot._now
+	local ok, err = pcall(function()
+		autoloot:reset()
+		autoloot._now = function()
+			return 100
+		end
+		autoloot:_mark_done("ttl_test")
+		T.assert_true(autoloot:_is_done("ttl_test"), "entry is live before ttl")
+		T.assert_eq(autoloot.state.done["ttl_test"], 105, "stores expiry timestamp")
+
+		autoloot._now = function()
+			return 104.9
+		end
+		T.assert_true(autoloot:_is_done("ttl_test"), "entry is still live before expiry")
+
+		autoloot._now = function()
+			return 105
+		end
+		T.assert_false(autoloot:_is_done("ttl_test"), "entry expires at ttl")
+		T.assert_nil(autoloot.state.done["ttl_test"], "expired entry is pruned on read")
+	end)
+	autoloot._now = orig_now
+	if not ok then
+		error(err)
+	end
 end)
 
 T.run("no set_mode method (removed)", function()
