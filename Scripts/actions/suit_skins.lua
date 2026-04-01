@@ -21,6 +21,7 @@ function SuitSkins:define_state()
 			wear_info = nil,
 			suit_data = nil,
 			suit_list = nil,
+			prior_guise_data = nil,
 		},
 	}
 end
@@ -327,6 +328,18 @@ function SuitSkins:enable(suit_no_or_item)
 		return false, "Could not get wear_info for suit " .. suit_no
 	end
 
+	-- Save the player's current guise data BEFORE applying (for restore on disable)
+	local mp = G.main_player
+	if mp and mp.get_guise_data then
+		local ok, guise_data = pcall(mp.get_guise_data, mp)
+		if ok and guise_data then
+			self.state.prior_guise_data = guise_data
+			self:log("Saved prior guise data for restore")
+		else
+			self:log("WARNING: Could not capture prior guise data")
+		end
+	end
+
 	self.state.suit_no = suit_no
 	self.state.wear_info = wear_info
 	self.state.is_enabled = true
@@ -343,9 +356,24 @@ end
 
 -- Disable persistent mode
 function SuitSkins:disable()
+	-- Restore prior guise data if available
+	local prior = self.state.prior_guise_data
+	if prior then
+		local mp = G.main_player
+		if mp and mp.apply_guise_data then
+			local ok, err = pcall(mp.apply_guise_data, mp, prior, false)
+			if ok then
+				self:log("Restored prior guise data")
+			else
+				self:log("WARNING: Failed to restore prior guise: " .. tostring(err))
+			end
+		end
+	end
+
 	self.state.is_enabled = false
 	self.state.suit_no = nil
 	self.state.wear_info = nil
+	self.state.prior_guise_data = nil
 	self:unhook("set_init_dressing_info")
 
 	self:log("=== PERSISTENT SKIN DISABLED ===")
