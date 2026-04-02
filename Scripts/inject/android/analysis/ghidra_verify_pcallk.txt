@@ -1,0 +1,783 @@
+
+======================================================================
+  FUN_030e55b0 (rank#3, 151 callers, calls rawrun)
+  ghidra=0x030E55B0  elf=0x0319DBE4  size=484  callers=151
+  prologue: FF 43 05 D1 FD 7B 10 A9 FC 8B 00 F9 F8 5F 12 A9 F6 57 13 A9 F4 4F 14 A9 FD 03 04 91 58 D0 3B D5
+======================================================================
+  DISASSEMBLY:
+    0x030e55b0  FF 43 05 D1  sub sp,sp,#0x150
+    0x030e55b4  FD 7B 10 A9  stp x29,x30,[sp, #0x100]
+    0x030e55b8  FC 8B 00 F9  str x28,[sp, #0x110]
+    0x030e55bc  F8 5F 12 A9  stp x24,x23,[sp, #0x120]
+    0x030e55c0  F6 57 13 A9  stp x22,x21,[sp, #0x130]
+    0x030e55c4  F4 4F 14 A9  stp x20,x19,[sp, #0x140]
+    0x030e55c8  FD 03 04 91  add x29,sp,#0x100
+    0x030e55cc  58 D0 3B D5  mrs x24,tpidr_el0
+    0x030e55d0  F3 03 02 AA  mov x19,x2
+    0x030e55d4  F4 03 01 2A  mov w20,w1
+    0x030e55d8  08 17 40 F9  ldr x8,[x24, #0x28]
+    0x030e55dc  E2 23 00 91  add x2,sp,#0x8
+    0x030e55e0  E1 03 1F 2A  mov w1,wzr
+    0x030e55e4  F5 03 00 AA  mov x21,x0
+    0x030e55e8  A8 83 1F F8  stur x8,[x29, #-0x8]
+    0x030e55ec  1D 48 00 94  bl 0x030f7660
+    0x030e55f0  60 08 00 34  cbz w0,0x030e56fc
+    0x030e55f4  21 3A FF F0  adrp x1,0x182c000
+    0x030e55f8  21 E0 0E 91  add x1,x1,#0x3b8
+    0x030e55fc  E2 23 00 91  add x2,sp,#0x8
+    0x030e5600  E0 03 15 AA  mov x0,x21
+    0x030e5604  4E 49 00 94  bl 0x030f7b3c
+    0x030e5608  E0 0F 40 F9  ldr x0,[sp, #0x18]
+    0x030e560c  21 44 FF D0  adrp x1,0x196b000
+    0x030e5610  21 28 0F 91  add x1,x1,#0x3ca
+    0x030e5614  E3 34 0F 95  bl 0x074b29a0
+    0x030e5618  60 00 00 35  cbnz w0,0x030e5624
+    0x030e561c  94 06 00 71  subs w20,w20,#0x1
+    0x030e5620  C0 07 00 54  b.eq 0x030e5718
+    0x030e5624  E3 0B 40 F9  ldr x3,[sp, #0x10]
+    0x030e5628  23 09 00 B5  cbnz x3,0x030e574c
+    0x030e562c  E0 03 15 AA  mov x0,x21
+    0x030e5630  01 DC FF 97  bl 0x030dc634
+    0x030e5634  F6 03 00 2A  mov w22,w0
+    0x030e5638  81 42 FF B0  adrp x1,0x1936000
+    0x030e563c  21 4C 16 91  add x1,x1,#0x593
+    0x030e5640  E2 23 00 91  add x2,sp,#0x8
+    0x030e5644  E0 03 15 AA  mov x0,x21
+    0x030e5648  3D 49 00 94  bl 0x030f7b3c
+    0x030e564c  01 3B 97 52  mov w1,#0xb9d8
+    0x030e5650  62 41 FF D0  adrp x2,0x1913000
+    0x030e5654  42 EC 29 91  add x2,x2,#0xa7b
+    0x030e5658  E0 03 15 AA  mov x0,x21
+    0x030e565c  01 FE BF 72  movk w1,#0xfff0, LSL #16
+    0x030e5660  18 E4 FF 97  bl 0x030de6c0
+    0x030e5664  C1 06 00 11  add w1,w22,#0x1
+    0x030e5668  E0 03 15 AA  mov x0,x21
+    0x030e566c  42 00 80 52  mov w2,#0x2
+    0x030e5670  21 09 00 94  bl 0x030e7af4
+    0x030e5674  00 06 00 34  cbz w0,0x030e5734
+    0x030e5678  E0 03 15 AA  mov x0,x21
+    0x030e567c  01 00 80 12  mov w1,#0xffffffff
+    0x030e5680  E2 03 1F AA  mov x2,xzr
+    0x030e5684  21 E0 FF 97  bl 0x030dd708
+    0x030e5688  C1 3A FF 90  adrp x1,0x183d000
+    0x030e568c  21 B0 04 91  add x1,x1,#0x12c
+    0x030e5690  62 00 80 52  mov w2,#0x3
+    0x030e5694  F7 03 00 AA  mov x23,x0
+    0x030e5698  62 35 0F 95  bl 0x074b2c20
+    0x030e569c  60 01 00 35  cbnz w0,0x030e56c8
+    0x030e56a0  E1 0E 00 91  add x1,x23,#0x3
+    0x030e56a4  E0 03 15 AA  mov x0,x21
+    0x030e56a8  21 E2 FF 97  bl 0x030ddf2c
+    0x030e56ac  E0 03 15 AA  mov x0,x21
+    0x030e56b0  21 00 80 12  mov w1,#0xfffffffe
+    0x030e56b4  02 00 80 12  mov w2,#0xffffffff
+    0x030e56b8  10 DC FF 97  bl 0x030dc6f8
+    0x030e56bc  E0 03 15 AA  mov x0,x21
+    0x030e56c0  21 00 80 12  mov w1,#0xfffffffe
+    0x030e56c4  E3 DB FF 97  bl 0x030dc650
+    0x030e56c8  C2 06 00 11  add w2,w22,#0x1
+    0x030e56cc  E0 03 15 AA  mov x0,x21
+    0x030e56d0  01 00 80 12  mov w1,#0xffffffff
+    0x030e56d4  45 DC FF 97  bl 0x030dc7e8
+    0x030e56d8  C1 06 00 11  add w1,w22,#0x1
+    0x030e56dc  E0 03 15 AA  mov x0,x21
+    0x030e56e0  DC DB FF 97  bl 0x030dc650
+    0x030e56e4  E0 03 15 AA  mov x0,x21
+    0x030e56e8  01 00 80 12  mov w1,#0xffffffff
+    0x030e56ec  E2 03 1F AA  mov x2,xzr
+    0x030e56f0  06 E0 FF 97  bl 0x030dd708
+    0x030e56f4  E3 03 00 AA  mov x3,x0
+    0x030e56f8  14 00 00 14  b 0x030e5748
+    0x030e56fc  A1 3E FF D0  adrp x1,0x18bb000
+    0x030e5700  21 FC 07 91  add x1,x1,#0x1ff
+    0x030e5704  E0 03 15 AA  mov x0,x21
+    0x030e5708  E2 03 14 2A  mov w2,w20
+    0x030e570c  E3 03 13 AA  mov x3,x19
+    0x030e5710  21 00 00 94  bl 0x030e5794
+    0x030e5714  14 00 00 14  b 0x030e5764
+    0x030e5718  E2 0B 40 F9  ldr x2,[sp, #0x10]
+    0x030e571c  01 38 FF 90  adrp x1,0x17e5000
+    0x030e5720  21 B4 24 91  add x1,x1,#0x92d
+    0x030e5724  E0 03 15 AA  mov x0,x21
+    0x030e5728  E3 03 13 AA  mov x3,x19
+    0x030e572c  1A 00 00 94  bl 0x030e5794
+    0x030e5730  0D 00 00 14  b 0x030e5764
+    0x030e5734  E0 03 15 AA  mov x0,x21
+    0x030e5738  E1 03 16 2A  mov w1,w22
+    0x030e573c  C5 DB FF 97  bl 0x030dc650
+    0x030e5740  A3 39 FF B0  adrp x3,0x181a000
+    0x030e5744  63 4C 01 91  add x3,x3,#0x53
+    0x030e5748  E3 0B 00 F9  str x3,[sp, #0x10]
+    0x030e574c  81 3D FF B0  adrp x1,0x1896000
+    0x030e5750  21 D0 2B 91  add x1,x1,#0xaf4
+    0x030e5754  E0 03 15 AA  mov x0,x21
+    0x030e5758  E2 03 14 2A  mov w2,w20
+    0x030e575c  E4 03 13 AA  mov x4,x19
+    0x030e5760  0D 00 00 94  bl 0x030e5794
+    0x030e5764  08 17 40 F9  ldr x8,[x24, #0x28]
+    0x030e5768  A9 83 5F F8  ldur x9,[x29, #-0x8]
+    0x030e576c  1F 01 09 EB  cmp x8,x9
+    0x030e5770  01 01 00 54  b.ne 0x030e5790
+    0x030e5774  F4 4F 54 A9  ldp x20,x19,[sp, #0x140]
+    0x030e5778  FC 8B 40 F9  ldr x28,[sp, #0x110]
+    0x030e577c  F6 57 53 A9  ldp x22,x21,[sp, #0x130]
+    0x030e5780  F8 5F 52 A9  ldp x24,x23,[sp, #0x120]
+    0x030e5784  FD 7B 50 A9  ldp x29,x30,[sp, #0x100]
+    0x030e5788  FF 43 05 91  add sp,sp,#0x150
+    0x030e578c  C0 03 5F D6  ret
+
+  BL/BLR TARGETS (20):
+    0x030e55ec -> 0x030f7660 elf=0x031AFC94 FUN_030f7660
+    0x030e5604 -> 0x030f7b3c elf=0x031B0170 FUN_030f7b3c
+    0x030e5614 -> 0x074b29a0 elf=0x0756AFD4 strcmp
+    0x030e5630 -> 0x030dc634 elf=0x03194C68 FUN_030dc634
+    0x030e5648 -> 0x030f7b3c elf=0x031B0170 FUN_030f7b3c
+    0x030e5660 -> 0x030de6c0 elf=0x03196CF4 FUN_030de6c0
+    0x030e5670 -> 0x030e7af4 elf=0x031A0128 FUN_030e7af4
+    0x030e5684 -> 0x030dd708 elf=0x03195D3C FUN_030dd708
+    0x030e5698 -> 0x074b2c20 elf=0x0756B254 strncmp
+    0x030e56a8 -> 0x030ddf2c elf=0x03196560 FUN_030ddf2c
+    0x030e56b8 -> 0x030dc6f8 elf=0x03194D2C FUN_030dc6f8
+    0x030e56c4 -> 0x030dc650 elf=0x03194C84 FUN_030dc650
+    0x030e56d4 -> 0x030dc7e8 elf=0x03194E1C FUN_030dc7e8
+    0x030e56e0 -> 0x030dc650 elf=0x03194C84 FUN_030dc650
+    0x030e56f0 -> 0x030dd708 elf=0x03195D3C FUN_030dd708
+    0x030e5710 -> 0x030e5794 elf=0x0319DDC8 FUN_030e5794 <<<< luaD_rawrunprotected
+    0x030e572c -> 0x030e5794 elf=0x0319DDC8 FUN_030e5794 <<<< luaD_rawrunprotected
+    0x030e573c -> 0x030dc650 elf=0x03194C84 FUN_030dc650
+    0x030e5760 -> 0x030e5794 elf=0x0319DDC8 FUN_030e5794 <<<< luaD_rawrunprotected
+    0x030e5790 -> 0x074b2750 elf=0x0756AD84 __stack_chk_fail
+
+  CALLERS (151):
+    0x0310c454 elf=0x031C4A88 FUN_0310c454 (size=656)
+    0x030e623c elf=0x0319E870 FUN_030e623c (size=172)
+    0x031147bc elf=0x031CCDF0 FUN_031147bc (size=900)
+    0x030e62e8 elf=0x0319E91C FUN_030e62e8 (size=196)
+    0x030e58b4 elf=0x0319DEE8 FUN_030e58b4 (size=284)
+    0x030e7938 elf=0x0319FF6C FUN_030e7938 (size=164)
+    0x030e8f3c elf=0x031A1570 FUN_030e8f3c (size=184)
+    0x030e9098 elf=0x031A16CC FUN_030e9098 (size=528)
+    0x030e92e0 elf=0x031A1914 FUN_030e92e0 (size=564)
+    0x030f55c4 elf=0x031ADBF8 FUN_030f55c4 (size=276)
+    0x030f59ac elf=0x031ADFE0 FUN_030f59ac (size=348)
+    0x030f5dd4 elf=0x031AE408 FUN_030f5dd4 (size=128)
+    0x031035a0 elf=0x031BBBD4 FUN_031035a0 (size=148)
+    0x03102fb0 elf=0x031BB5E4 FUN_03102fb0 (size=296)
+    0x03103100 elf=0x031BB734 FUN_03103100 (size=208)
+    0x031037bc elf=0x031BBDF0 FUN_031037bc (size=1416)
+    0x03107540 elf=0x031BFB74 FUN_03107540 (size=168)
+    0x03108fd4 elf=0x031C1608 FUN_03108fd4 (size=172)
+    0x03109080 elf=0x031C16B4 FUN_03109080 (size=172)
+    0x0311be34 elf=0x031D4468 FUN_0311be34 (size=228)
+    0x0311bf18 elf=0x031D454C FUN_0311bf18 (size=416)
+    0x0311c0b8 elf=0x031D46EC FUN_0311c0b8 (size=168)
+    0x031200b8 elf=0x031D86EC FUN_031200b8 (size=524)
+    0x03130974 elf=0x031E8FA8 FUN_03130974 (size=136)
+    0x0313deac elf=0x031F64E0 FUN_0313deac (size=128)
+    0x0313ff44 elf=0x031F8578 FUN_0313ff44 (size=176)
+    0x0314010c elf=0x031F8740 FUN_0314010c (size=184)
+    0x03140768 elf=0x031F8D9C FUN_03140768 (size=184)
+    0x031415b0 elf=0x031F9BE4 FUN_031415b0 (size=144)
+    0x03142bf8 elf=0x031FB22C FUN_03142bf8 (size=500)
+    0x031419e4 elf=0x031FA018 FUN_031419e4 (size=340)
+    0x03141b38 elf=0x031FA16C FUN_03141b38 (size=340)
+    0x031438d0 elf=0x031FBF04 FUN_031438d0 (size=312)
+    0x03142770 elf=0x031FADA4 FUN_03142770 (size=284)
+    0x0314288c elf=0x031FAEC0 FUN_0314288c (size=148)
+    0x03144220 elf=0x031FC854 FUN_03144220 (size=172)
+    0x03144648 elf=0x031FCC7C FUN_03144648 (size=328)
+    0x03144790 elf=0x031FCDC4 FUN_03144790 (size=212)
+    0x03144aa8 elf=0x031FD0DC FUN_03144aa8 (size=228)
+    0x031456dc elf=0x031FDD10 FUN_031456dc (size=164)
+    0x03145384 elf=0x031FD9B8 FUN_03145384 (size=140)
+    0x03145aa8 elf=0x031FE0DC FUN_03145aa8 (size=152)
+    0x03145ed0 elf=0x031FE504 FUN_03145ed0 (size=132)
+    0x031465d0 elf=0x031FEC04 FUN_031465d0 (size=468)
+    0x0314abf4 elf=0x03203228 FUN_0314abf4 (size=508)
+    0x03156ce8 elf=0x0320F31C FUN_03156ce8 (size=800)
+    0x0314ff7c elf=0x032085B0 FUN_0314ff7c (size=244)
+    0x0318308c elf=0x0323B6C0 FUN_0318308c (size=176)
+    0x03186278 elf=0x0323E8AC FUN_03186278 (size=188)
+    0x03188534 elf=0x03240B68 FUN_03188534 (size=360)
+    0x0318325c elf=0x0323B890 FUN_0318325c (size=220)
+    0x031831c0 elf=0x0323B7F4 FUN_031831c0 (size=156)
+    0x03189ad8 elf=0x0324210C FUN_03189ad8 (size=160)
+    0x031863d8 elf=0x0323EA0C FUN_031863d8 (size=188)
+    0x0318366c elf=0x0323BCA0 FUN_0318366c (size=1108)
+    0x0318e210 elf=0x03246844 FUN_0318e210 (size=752)
+    0x030e5e18 elf=0x0319E44C FUN_030e5e18 (size=256)
+    0x030e60c4 elf=0x0319E6F8 FUN_030e60c4 (size=72)
+    0x0313226c elf=0x031EA8A0 FUN_0313226c (size=472)
+    0x03134700 elf=0x031ECD34 FUN_03134700 (size=252)
+    0x031347fc elf=0x031ECE30 FUN_031347fc (size=616)
+    0x03134ec8 elf=0x031ED4FC FUN_03134ec8 (size=212)
+    0x03134f9c elf=0x031ED5D0 FUN_03134f9c (size=572)
+    0x03136e80 elf=0x031EF4B4 FUN_03136e80 (size=444)
+    0x0318dc90 elf=0x032462C4 FUN_0318dc90 (size=268)
+    0x0318d21c elf=0x03245850 FUN_0318d21c (size=1044)
+    0x031094a8 elf=0x031C1ADC FUN_031094a8 (size=416)
+    0x03115344 elf=0x031CD978 FUN_03115344 (size=244)
+    0x0311bb44 elf=0x031D4178 FUN_0311bb44 (size=248)
+    0x03141640 elf=0x031F9C74 FUN_03141640 (size=144)
+    0x03141c8c elf=0x031FA2C0 FUN_03141c8c (size=352)
+    0x03142920 elf=0x031FAF54 FUN_03142920 (size=264)
+    0x031441c0 elf=0x031FC7F4 FUN_031441c0 (size=96)
+    0x031442cc elf=0x031FC900 FUN_031442cc (size=148)
+    0x03144864 elf=0x031FCE98 FUN_03144864 (size=136)
+    0x03144b8c elf=0x031FD1C0 FUN_03144b8c (size=200)
+    0x03145780 elf=0x031FDDB4 FUN_03145780 (size=164)
+    0x03145b40 elf=0x031FE174 FUN_03145b40 (size=176)
+    0x03145f54 elf=0x031FE588 FUN_03145f54 (size=144)
+    0x0314a1b8 elf=0x032027EC FUN_0314a1b8 (size=256)
+    0x0316f628 elf=0x03227C5C FUN_0316f628 (size=248)
+    0x0318313c elf=0x0323B770 FUN_0318313c (size=132)
+    0x031416d0 elf=0x031F9D04 FUN_031416d0 (size=144)
+    0x03141dec elf=0x031FA420 FUN_03141dec (size=384)
+    0x03142a28 elf=0x031FB05C FUN_03142a28 (size=136)
+    0x03144360 elf=0x031FC994 FUN_03144360 (size=120)
+    0x031448ec elf=0x031FCF20 FUN_031448ec (size=216)
+    0x03144c54 elf=0x031FD288 FUN_03144c54 (size=224)
+    0x03145824 elf=0x031FDE58 FUN_03145824 (size=144)
+    0x03145bf0 elf=0x031FE224 FUN_03145bf0 (size=212)
+    0x03145fe4 elf=0x031FE618 FUN_03145fe4 (size=152)
+    0x03141760 elf=0x031F9D94 FUN_03141760 (size=144)
+    0x03141f6c elf=0x031FA5A0 FUN_03141f6c (size=200)
+    0x031443d8 elf=0x031FCA0C FUN_031443d8 (size=136)
+    0x031449c4 elf=0x031FCFF8 FUN_031449c4 (size=228)
+    0x03144d34 elf=0x031FD368 FUN_03144d34 (size=200)
+    0x031458b4 elf=0x031FDEE8 FUN_031458b4 (size=144)
+    0x03145cc4 elf=0x031FE2F8 FUN_03145cc4 (size=176)
+    0x0314607c elf=0x031FE6B0 FUN_0314607c (size=188)
+    0x0314a4e0 elf=0x03202B14 FUN_0314a4e0 (size=464)
+    0x03136dcc elf=0x031EF400 FUN_03136dcc (size=180)
+    0x031417f0 elf=0x031F9E24 FUN_031417f0 (size=144)
+    0x03142034 elf=0x031FA668 FUN_03142034 (size=352)
+    0x03144460 elf=0x031FCA94 FUN_03144460 (size=228)
+    0x03144dfc elf=0x031FD430 FUN_03144dfc (size=224)
+    0x03145944 elf=0x031FDF78 FUN_03145944 (size=196)
+    0x03145d74 elf=0x031FE3A8 FUN_03145d74 (size=348)
+    0x03146138 elf=0x031FE76C FUN_03146138 (size=188)
+    0x03141880 elf=0x031F9EB4 FUN_03141880 (size=132)
+    0x03142194 elf=0x031FA7C8 FUN_03142194 (size=352)
+    0x03144544 elf=0x031FCB78 FUN_03144544 (size=260)
+    0x03144edc elf=0x031FD510 FUN_03144edc (size=208)
+    0x031461f4 elf=0x031FE828 FUN_031461f4 (size=184)
+    0x03141904 elf=0x031F9F38 FUN_03141904 (size=168)
+    0x031422f4 elf=0x031FA928 FUN_031422f4 (size=352)
+    0x03144fac elf=0x031FD5E0 FUN_03144fac (size=200)
+    0x03142454 elf=0x031FAA88 FUN_03142454 (size=352)
+    0x03145074 elf=0x031FD6A8 FUN_03145074 (size=200)
+    0x0314513c elf=0x031FD770 FUN_0314513c (size=248)
+    0x03145234 elf=0x031FD868 FUN_03145234 (size=240)
+
+  PATTERN MATCH:
+    calls luaD_rawrunprotected: True
+    calls luaD_precall: False
+    calls luaV_execute: False
+    calls luaD_protectedparser: False
+    >>> STRONG MATCH for lua_pcallk (calls rawrun, not precall/execute)
+
+======================================================================
+  FUN_030e610c (old 'dispatch hook' containing func)
+  ghidra=0x030E610C  elf=0x0319E740  size=140  callers=215
+  prologue: FF 03 01 D1 E8 0B 00 FD FD FB 01 A9 F5 17 00 F9 F4 4F 03 A9 FD 63 00 91 55 D0 3B D5 E2 13 00 91
+======================================================================
+  DISASSEMBLY:
+    0x030e610c  FF 03 01 D1  sub sp,sp,#0x40
+    0x030e6110  E8 0B 00 FD  str d8,[sp, #0x10]
+    0x030e6114  FD FB 01 A9  stp x29,x30,[sp, #0x18]
+    0x030e6118  F5 17 00 F9  str x21,[sp, #0x28]
+    0x030e611c  F4 4F 03 A9  stp x20,x19,[sp, #0x30]
+    0x030e6120  FD 63 00 91  add x29,sp,#0x18
+    0x030e6124  55 D0 3B D5  mrs x21,tpidr_el0
+    0x030e6128  E2 13 00 91  add x2,sp,#0x4
+    0x030e612c  F3 03 01 2A  mov w19,w1
+    0x030e6130  A8 16 40 F9  ldr x8,[x21, #0x28]
+    0x030e6134  F4 03 00 AA  mov x20,x0
+    0x030e6138  E8 07 00 F9  str x8,[sp, #0x8]
+    0x030e613c  B4 DC FF 97  bl 0x030dd40c
+    0x030e6140  E8 07 40 B9  ldr w8,[sp, #0x4]
+    0x030e6144  48 01 00 35  cbnz w8,0x030e616c
+    0x030e6148  E0 03 14 AA  mov x0,x20
+    0x030e614c  61 00 80 52  mov w1,#0x3
+    0x030e6150  08 40 60 1E  fmov d8,d0
+    0x030e6154  63 DA FF 97  bl 0x030dcae0
+    0x030e6158  E2 03 00 AA  mov x2,x0
+    0x030e615c  E0 03 14 AA  mov x0,x20
+    0x030e6160  E1 03 13 2A  mov w1,w19
+    0x030e6164  D4 FD FF 97  bl 0x030e58b4
+    0x030e6168  00 41 60 1E  fmov d0,d8
+    0x030e616c  A8 16 40 F9  ldr x8,[x21, #0x28]
+    0x030e6170  E9 07 40 F9  ldr x9,[sp, #0x8]
+    0x030e6174  1F 01 09 EB  cmp x8,x9
+    0x030e6178  E1 00 00 54  b.ne 0x030e6194
+    0x030e617c  F4 4F 43 A9  ldp x20,x19,[sp, #0x30]
+    0x030e6180  F5 17 40 F9  ldr x21,[sp, #0x28]
+    0x030e6184  FD FB 41 A9  ldp x29,x30,[sp, #0x18]
+    0x030e6188  E8 0B 40 FD  ldr d8,[sp, #0x10]
+    0x030e618c  FF 03 01 91  add sp,sp,#0x40
+    0x030e6190  C0 03 5F D6  ret
+    0x030e6194  6F 31 0F 95  bl 0x074b2750
+
+  BL/BLR TARGETS (4):
+    0x030e613c -> 0x030dd40c elf=0x03195A40 FUN_030dd40c
+    0x030e6154 -> 0x030dcae0 elf=0x03195114 FUN_030dcae0
+    0x030e6164 -> 0x030e58b4 elf=0x0319DEE8 FUN_030e58b4
+    0x030e6194 -> 0x074b2750 elf=0x0756AD84 __stack_chk_fail
+
+  CALLERS (215):
+    0x030ac6bc elf=0x03164CF0 FUN_030ac6bc (size=444)
+    0x030aced8 elf=0x0316550C FUN_030aced8 (size=84)
+    0x030acf2c elf=0x03165560 FUN_030acf2c (size=444)
+    0x03108944 elf=0x031C0F78 FUN_03108944 (size=104)
+    0x031089ac elf=0x031C0FE0 FUN_031089ac (size=52)
+    0x031089e0 elf=0x031C1014 FUN_031089e0 (size=52)
+    0x03108a6c elf=0x031C10A0 FUN_03108a6c (size=128)
+    0x03108aec elf=0x031C1120 FUN_03108aec (size=52)
+    0x03108b20 elf=0x031C1154 FUN_03108b20 (size=60)
+    0x03108b5c elf=0x031C1190 FUN_03108b5c (size=52)
+    0x03108c90 elf=0x031C12C4 FUN_03108c90 (size=76)
+    0x03108cdc elf=0x031C1310 FUN_03108cdc (size=76)
+    0x03108f20 elf=0x031C1554 FUN_03108f20 (size=180)
+    0x0310912c elf=0x031C1760 FUN_0310912c (size=184)
+    0x031091e4 elf=0x031C1818 FUN_031091e4 (size=60)
+    0x03109220 elf=0x031C1854 FUN_03109220 (size=52)
+    0x03109254 elf=0x031C1888 FUN_03109254 (size=52)
+    0x03109288 elf=0x031C18BC FUN_03109288 (size=52)
+    0x03109648 elf=0x031C1C7C FUN_03109648 (size=160)
+    0x031295b4 elf=0x031E1BE8 FUN_031295b4 (size=68)
+    0x031295f8 elf=0x031E1C2C FUN_031295f8 (size=72)
+    0x031299f4 elf=0x031E2028 FUN_031299f4 (size=72)
+    0x03129a3c elf=0x031E2070 FUN_03129a3c (size=476)
+    0x0312c624 elf=0x031E4C58 FUN_0312c624 (size=1952)
+    0x067bc130 elf=0x06874764 FUN_067bc130 (size=252)
+    0x067e2d18 elf=0x0689B34C FUN_067e2d18 (size=360)
+    0x068003a0 elf=0x068B89D4 FUN_068003a0 (size=476)
+    0x0680ae80 elf=0x068C34B4 FUN_0680ae80 (size=284)
+    0x06820718 elf=0x068D8D4C FUN_06820718 (size=296)
+    0x06820b98 elf=0x068D91CC FUN_06820b98 (size=260)
+    0x06820e58 elf=0x068D948C FUN_06820e58 (size=56)
+    0x06820e90 elf=0x068D94C4 FUN_06820e90 (size=180)
+    0x0682107c elf=0x068D96B0 FUN_0682107c (size=56)
+    0x068210b4 elf=0x068D96E8 FUN_068210b4 (size=204)
+    0x06821528 elf=0x068D9B5C FUN_06821528 (size=56)
+    0x06821560 elf=0x068D9B94 FUN_06821560 (size=56)
+    0x06821784 elf=0x068D9DB8 FUN_06821784 (size=76)
+    0x068217d0 elf=0x068D9E04 FUN_068217d0 (size=212)
+    0x068218dc elf=0x068D9F10 FUN_068218dc (size=76)
+    0x06821928 elf=0x068D9F5C FUN_06821928 (size=160)
+    0x06821ab0 elf=0x068DA0E4 FUN_06821ab0 (size=56)
+    0x06821b04 elf=0x068DA138 FUN_06821b04 (size=56)
+    0x06821cd0 elf=0x068DA304 FUN_06821cd0 (size=196)
+    0x06821ea8 elf=0x068DA4DC FUN_06821ea8 (size=132)
+    0x068220b0 elf=0x068DA6E4 FUN_068220b0 (size=132)
+    0x0682216c elf=0x068DA7A0 FUN_0682216c (size=56)
+    0x0682223c elf=0x068DA870 FUN_0682223c (size=132)
+    0x06823584 elf=0x068DBBB8 FUN_06823584 (size=200)
+    0x068260b0 elf=0x068DE6E4 FUN_068260b0 (size=312)
+    0x068263ec elf=0x068DEA20 FUN_068263ec (size=568)
+    0x06827188 elf=0x068DF7BC FUN_06827188 (size=68)
+    0x06827418 elf=0x068DFA4C FUN_06827418 (size=68)
+    0x0682745c elf=0x068DFA90 FUN_0682745c (size=104)
+    0x068275b8 elf=0x068DFBEC FUN_068275b8 (size=68)
+    0x068275fc elf=0x068DFC30 FUN_068275fc (size=76)
+    0x06827648 elf=0x068DFC7C FUN_06827648 (size=68)
+    0x0682768c elf=0x068DFCC0 FUN_0682768c (size=76)
+    0x06827a90 elf=0x068E00C4 FUN_06827a90 (size=56)
+    0x06827bc4 elf=0x068E01F8 FUN_06827bc4 (size=196)
+    0x06827cc0 elf=0x068E02F4 FUN_06827cc0 (size=56)
+    0x068280e4 elf=0x068E0718 FUN_068280e4 (size=144)
+    0x06828264 elf=0x068E0898 FUN_06828264 (size=68)
+    0x068282a8 elf=0x068E08DC FUN_068282a8 (size=208)
+    0x0682868c elf=0x068E0CC0 FUN_0682868c (size=68)
+    0x06828750 elf=0x068E0D84 FUN_06828750 (size=68)
+    0x06828858 elf=0x068E0E8C FUN_06828858 (size=68)
+    0x06828914 elf=0x068E0F48 FUN_06828914 (size=68)
+    0x06828958 elf=0x068E0F8C FUN_06828958 (size=68)
+    0x0682899c elf=0x068E0FD0 FUN_0682899c (size=236)
+    0x06828cbc elf=0x068E12F0 FUN_06828cbc (size=56)
+    0x06829100 elf=0x068E1734 FUN_06829100 (size=248)
+    0x0682a600 elf=0x068E2C34 FUN_0682a600 (size=84)
+    0x0682a654 elf=0x068E2C88 FUN_0682a654 (size=84)
+    0x0682a6a8 elf=0x068E2CDC FUN_0682a6a8 (size=200)
+    0x0682ab24 elf=0x068E3158 FUN_0682ab24 (size=240)
+    0x0686b08c elf=0x069236C0 FUN_0686b08c (size=228)
+    0x067e5110 elf=0x0689D744 FUN_067e5110 (size=604)
+    0x06895214 elf=0x0694D848 FUN_06895214 (size=268)
+    0x068a0430 elf=0x06958A64 FUN_068a0430 (size=476)
+    0x068a28c4 elf=0x0695AEF8 FUN_068a28c4 (size=436)
+    0x068a32e0 elf=0x0695B914 FUN_068a32e0 (size=128)
+    0x068be6f8 elf=0x06976D2C FUN_068be6f8 (size=300)
+    0x068be954 elf=0x06976F88 FUN_068be954 (size=460)
+    0x06878f74 elf=0x069315A8 FUN_06878f74 (size=104)
+    0x068e41ec elf=0x0699C820 FUN_068e41ec (size=380)
+    0x068e8bac elf=0x069A11E0 FUN_068e8bac (size=292)
+    0x068f3a1c elf=0x069AC050 FUN_068f3a1c (size=464)
+    0x068f3c8c elf=0x069AC2C0 FUN_068f3c8c (size=696)
+    0x068f3fe4 elf=0x069AC618 FUN_068f3fe4 (size=376)
+    0x068f5f5c elf=0x069AE590 FUN_068f5f5c (size=368)
+    0x068f65d0 elf=0x069AEC04 FUN_068f65d0 (size=240)
+    0x068f7684 elf=0x069AFCB8 FUN_068f7684 (size=216)
+    0x0691a338 elf=0x069D296C FUN_0691a338 (size=336)
+    0x06920718 elf=0x069D8D4C FUN_06920718 (size=508)
+    0x06925834 elf=0x069DDE68 FUN_06925834 (size=368)
+    0x0693bc00 elf=0x069F4234 FUN_0693bc00 (size=216)
+    0x0693cec8 elf=0x069F54FC FUN_0693cec8 (size=316)
+    0x0696d774 elf=0x06A25DA8 FUN_0696d774 (size=368)
+    0x0696d9c4 elf=0x06A25FF8 FUN_0696d9c4 (size=256)
+    0x0696eaec elf=0x06A27120 FUN_0696eaec (size=480)
+    0x0697c8d8 elf=0x06A34F0C FUN_0697c8d8 (size=252)
+    0x0697cc2c elf=0x06A35260 FUN_0697cc2c (size=192)
+    0x0697ccec elf=0x06A35320 FUN_0697ccec (size=280)
+    0x069e7024 elf=0x06A9F658 FUN_069e7024 (size=308)
+    0x06a4eca8 elf=0x06B072DC FUN_06a4eca8 (size=476)
+    0x06a559fc elf=0x06B0E030 FUN_06a559fc (size=368)
+    0x06a58320 elf=0x06B10954 FUN_06a58320 (size=440)
+    0x06a593a4 elf=0x06B119D8 FUN_06a593a4 (size=476)
+    0x06a59f40 elf=0x06B12574 FUN_06a59f40 (size=216)
+    0x06a5a4b8 elf=0x06B12AEC FUN_06a5a4b8 (size=216)
+    0x06aad530 elf=0x06B65B64 FUN_06aad530 (size=308)
+    0x06ab0480 elf=0x06B68AB4 FUN_06ab0480 (size=448)
+    0x06ab410c elf=0x06B6C740 FUN_06ab410c (size=432)
+    0x06ad638c elf=0x06B8E9C0 FUN_06ad638c (size=424)
+    0x06ae3728 elf=0x06B9BD5C FUN_06ae3728 (size=216)
+    0x06e4d294 elf=0x06F058C8 FUN_06e4d294 (size=368)
+    0x0318d21c elf=0x03245850 FUN_0318d21c (size=1044)
+    0x067c6738 elf=0x0687ED6C FUN_067c6738 (size=1516)
+    0x0692e114 elf=0x069E6748 FUN_0692e114 (size=1012)
+    0x03108c10 elf=0x031C1244 FUN_03108c10 (size=128)
+    0x03129508 elf=0x031E1B3C FUN_03129508 (size=172)
+    0x03144b8c elf=0x031FD1C0 FUN_03144b8c (size=200)
+    0x03145f54 elf=0x031FE588 FUN_03145f54 (size=144)
+    0x068218a4 elf=0x068D9ED8 FUN_068218a4 (size=56)
+    0x068219c8 elf=0x068D9FFC FUN_068219c8 (size=56)
+    0x06822134 elf=0x068DA768 FUN_06822134 (size=56)
+    0x068272b4 elf=0x068DF8E8 FUN_068272b4 (size=76)
+    0x031448ec elf=0x031FCF20 FUN_031448ec (size=216)
+    0x03189368 elf=0x0324199C FUN_03189368 (size=72)
+    0x0318be20 elf=0x03244454 FUN_0318be20 (size=72)
+    0x03144d34 elf=0x031FD368 FUN_03144d34 (size=200)
+    0x03145d74 elf=0x031FE3A8 FUN_03145d74 (size=348)
+    0x03188b6c elf=0x032411A0 FUN_03188b6c (size=72)
+
+  PATTERN MATCH:
+    calls luaD_rawrunprotected: False
+    calls luaD_precall: False
+    calls luaV_execute: False
+    calls luaD_protectedparser: False
+
+======================================================================
+  FUN_030fc1b0 (CURRENT candidate, 8 callers)
+  ghidra=0x030FC1B0  elf=0x031B47E4  size=140  callers=8
+  prologue: FD 7B BD A9 F5 0B 00 F9 F4 4F 02 A9 FD 03 00 91 08 B0 40 B9 E9 83 00 32 F3 03 00 AA 08 01 09 0B
+======================================================================
+  DISASSEMBLY:
+    0x030fc1b0  FD 7B BD A9  stp x29,x30,[sp, #-0x30]!
+    0x030fc1b4  F5 0B 00 F9  str x21,[sp, #0x10]
+    0x030fc1b8  F4 4F 02 A9  stp x20,x19,[sp, #0x20]
+    0x030fc1bc  FD 03 00 91  mov x29,sp
+    0x030fc1c0  08 B0 40 B9  ldr w8,[x0, #0xb0]
+    0x030fc1c4  E9 83 00 32  orr w9,wzr,#0x10001
+    0x030fc1c8  F3 03 00 AA  mov x19,x0
+    0x030fc1cc  08 01 09 0B  add w8,w8,w9
+    0x030fc1d0  09 31 1D 12  and w9,w8,#0xfff8
+    0x030fc1d4  08 B0 00 B9  str w8,[x0, #0xb0]
+    0x030fc1d8  3F 21 03 71  cmp w9,#0xc8
+    0x030fc1dc  22 02 00 54  b.cs 0x030fc220
+    0x030fc1e0  E0 03 13 AA  mov x0,x19
+    0x030fc1e4  B9 FD FF 97  bl 0x030fb8c8
+    0x030fc1e8  C0 00 00 B4  cbz x0,0x030fc200
+    0x030fc1ec  88 00 80 52  mov w8,#0x4
+    0x030fc1f0  E1 03 00 AA  mov x1,x0
+    0x030fc1f4  08 7C 00 79  strh w8,[x0, #0x3e]
+    0x030fc1f8  E0 03 13 AA  mov x0,x19
+    0x030fc1fc  6C 98 00 94  bl 0x031223ac
+    0x030fc200  68 B2 40 B9  ldr w8,[x19, #0xb0]
+    0x030fc204  29 00 A0 12  mov w9,#0xfffeffff
+    0x030fc208  08 01 09 0B  add w8,w8,w9
+    0x030fc20c  68 B2 00 B9  str w8,[x19, #0xb0]
+    0x030fc210  F4 4F 42 A9  ldp x20,x19,[sp, #0x20]
+    0x030fc214  F5 0B 40 F9  ldr x21,[sp, #0x10]
+    0x030fc218  FD 7B C3 A8  ldp x29,x30,[sp], #0x30
+    0x030fc21c  C0 03 5F D6  ret
+    0x030fc220  E0 03 13 AA  mov x0,x19
+    0x030fc224  F4 03 02 2A  mov w20,w2
+    0x030fc228  F5 03 01 AA  mov x21,x1
+    0x030fc22c  20 5C 00 94  bl 0x031132ac
+    0x030fc230  E1 03 15 AA  mov x1,x21
+    0x030fc234  E2 03 14 2A  mov w2,w20
+    0x030fc238  EA FF FF 17  b 0x030fc1e0
+
+  BL/BLR TARGETS (3):
+    0x030fc1e4 -> 0x030fb8c8 elf=0x031B3EFC FUN_030fb8c8 <<<< luaD_precall
+    0x030fc1fc -> 0x031223ac elf=0x031DA9E0 FUN_031223ac <<<< luaV_execute
+    0x030fc22c -> 0x031132ac elf=0x031CB8E0 FUN_031132ac
+
+  CALLERS (8):
+    0x030f86b8 elf=0x031B0CEC FUN_030f86b8 (size=108)
+    0x030fe9cc elf=0x031B7000 FUN_030fe9cc (size=604)
+    0x0311ca7c elf=0x031D50B0 FUN_0311ca7c (size=188)
+    0x0311cbd8 elf=0x031D520C FUN_0311cbd8 (size=500)
+    0x030f8724 elf=0x031B0D58 FUN_030f8724 (size=84)
+    0x0311ca08 elf=0x031D503C FUN_0311ca08 (size=116)
+    0x030fe9a4 elf=0x031B6FD8 FUN_030fe9a4 (size=16)
+    0x030e2db0 elf=0x0319B3E4 FUN_030e2db0 (size=132)
+
+  PATTERN MATCH:
+    calls luaD_rawrunprotected: False
+    calls luaD_precall: True
+    calls luaV_execute: True
+    calls luaD_protectedparser: False
+    >>> Matches luaD_callnoyield / luaD_call pattern
+
+======================================================================
+  FUN_030fc12c (6 callers, calls precall+execute)
+  ghidra=0x030FC12C  elf=0x031B4760  size=132  callers=6
+  prologue: FD 7B BD A9 F5 0B 00 F9 F4 4F 02 A9 FD 03 00 91 08 B0 40 B9 F3 03 00 AA 08 05 00 11 09 31 1D 12
+======================================================================
+  DISASSEMBLY:
+    0x030fc12c  FD 7B BD A9  stp x29,x30,[sp, #-0x30]!
+    0x030fc130  F5 0B 00 F9  str x21,[sp, #0x10]
+    0x030fc134  F4 4F 02 A9  stp x20,x19,[sp, #0x20]
+    0x030fc138  FD 03 00 91  mov x29,sp
+    0x030fc13c  08 B0 40 B9  ldr w8,[x0, #0xb0]
+    0x030fc140  F3 03 00 AA  mov x19,x0
+    0x030fc144  08 05 00 11  add w8,w8,#0x1
+    0x030fc148  09 31 1D 12  and w9,w8,#0xfff8
+    0x030fc14c  08 B0 00 B9  str w8,[x0, #0xb0]
+    0x030fc150  3F 21 03 71  cmp w9,#0xc8
+    0x030fc154  02 02 00 54  b.cs 0x030fc194
+    0x030fc158  E0 03 13 AA  mov x0,x19
+    0x030fc15c  DB FD FF 97  bl 0x030fb8c8
+    0x030fc160  C0 00 00 B4  cbz x0,0x030fc178
+    0x030fc164  88 00 80 52  mov w8,#0x4
+    0x030fc168  E1 03 00 AA  mov x1,x0
+    0x030fc16c  08 7C 00 79  strh w8,[x0, #0x3e]
+    0x030fc170  E0 03 13 AA  mov x0,x19
+    0x030fc174  8E 98 00 94  bl 0x031223ac
+    0x030fc178  68 B2 40 B9  ldr w8,[x19, #0xb0]
+    0x030fc17c  08 05 00 51  sub w8,w8,#0x1
+    0x030fc180  68 B2 00 B9  str w8,[x19, #0xb0]
+    0x030fc184  F4 4F 42 A9  ldp x20,x19,[sp, #0x20]
+    0x030fc188  F5 0B 40 F9  ldr x21,[sp, #0x10]
+    0x030fc18c  FD 7B C3 A8  ldp x29,x30,[sp], #0x30
+    0x030fc190  C0 03 5F D6  ret
+    0x030fc194  E0 03 13 AA  mov x0,x19
+    0x030fc198  F4 03 02 2A  mov w20,w2
+    0x030fc19c  F5 03 01 AA  mov x21,x1
+    0x030fc1a0  43 5C 00 94  bl 0x031132ac
+    0x030fc1a4  E1 03 15 AA  mov x1,x21
+    0x030fc1a8  E2 03 14 2A  mov w2,w20
+    0x030fc1ac  EB FF FF 17  b 0x030fc158
+
+  BL/BLR TARGETS (3):
+    0x030fc15c -> 0x030fb8c8 elf=0x031B3EFC FUN_030fb8c8 <<<< luaD_precall
+    0x030fc174 -> 0x031223ac elf=0x031DA9E0 FUN_031223ac <<<< luaV_execute
+    0x030fc1a0 -> 0x031132ac elf=0x031CB8E0 FUN_031132ac
+
+  CALLERS (6):
+    0x0311ca7c elf=0x031D50B0 FUN_0311ca7c (size=188)
+    0x0311cbd8 elf=0x031D520C FUN_0311cbd8 (size=500)
+    0x030e2e34 elf=0x0319B468 FUN_030e2e34 (size=332)
+    0x0311ca08 elf=0x031D503C FUN_0311ca08 (size=116)
+    0x031223ac elf=0x031DA9E0 FUN_031223ac (size=28524)
+    0x030e2db0 elf=0x0319B3E4 FUN_030e2db0 (size=132)
+
+  PATTERN MATCH:
+    calls luaD_rawrunprotected: False
+    calls luaD_precall: True
+    calls luaV_execute: True
+    calls luaD_protectedparser: False
+    >>> Matches luaD_callnoyield / luaD_call pattern
+
+======================================================================
+  FUN_030fb1d0 (2 callers, calls precall+execute)
+  ghidra=0x030FB1D0  elf=0x031B3804  size=568  callers=2
+  prologue: FD 7B BD A9 F5 0B 00 F9 F4 4F 02 A9 FD 03 00 91 28 C0 40 39 F4 03 01 AA F3 03 00 AA 1F 0D 00 72
+======================================================================
+  DISASSEMBLY:
+    0x030fb1d0  FD 7B BD A9  stp x29,x30,[sp, #-0x30]!
+    0x030fb1d4  F5 0B 00 F9  str x21,[sp, #0x10]
+    0x030fb1d8  F4 4F 02 A9  stp x20,x19,[sp, #0x20]
+    0x030fb1dc  FD 03 00 91  mov x29,sp
+    0x030fb1e0  28 C0 40 39  ldrb w8,[x1, #0x30]
+    0x030fb1e4  F4 03 01 AA  mov x20,x1
+    0x030fb1e8  F3 03 00 AA  mov x19,x0
+    0x030fb1ec  1F 0D 00 72  tst w8,#0xf
+    0x030fb1f0  C0 00 00 54  b.eq 0x030fb208
+    0x030fb1f4  81 16 40 F9  ldr x1,[x20, #0x28]
+    0x030fb1f8  28 40 40 39  ldrb w8,[x1, #0x10]
+    0x030fb1fc  68 00 00 35  cbnz w8,0x030fb208
+    0x030fb200  E0 03 13 AA  mov x0,x19
+    0x030fb204  F3 FF FF 97  bl 0x030fb1d0
+    0x030fb208  88 02 42 39  ldrb w8,[x20, #0x80]
+    0x030fb20c  08 0D 00 72  ands w8,w8,#0xf
+    0x030fb210  60 0A 00 54  b.eq 0x030fb35c
+    0x030fb214  1F 19 00 71  cmp w8,#0x6
+    0x030fb218  21 0C 00 54  b.ne 0x030fb39c
+    0x030fb21c  68 1A 40 F9  ldr x8,[x19, #0x30]
+    0x030fb220  61 0E 40 F9  ldr x1,[x19, #0x18]
+    0x030fb224  09 01 01 CB  sub x9,x8,x1
+    0x030fb228  3F BD 00 F1  cmp x9,#0x2f
+    0x030fb22c  2C 04 00 54  b.gt 0x030fb2b0
+    0x030fb230  69 12 40 F9  ldr x9,[x19, #0x20]
+    0x030fb234  29 0D 40 F9  ldr x9,[x9, #0x18]
+    0x030fb238  3F 05 00 F1  cmp x9,#0x1
+    0x030fb23c  8B 00 00 54  b.lt 0x030fb24c
+    0x030fb240  E0 03 13 AA  mov x0,x19
+    0x030fb244  22 13 00 94  bl 0x030ffecc
+    0x030fb248  68 1A 40 F9  ldr x8,[x19, #0x30]
+    0x030fb24c  6A 1E 40 F9  ldr x10,[x19, #0x38]
+    0x030fb250  09 01 0A CB  sub x9,x8,x10
+    0x030fb254  E8 47 88 52  mov w8,#0x423f
+    0x030fb258  E8 01 A0 72  movk w8,#0xf, LSL #16
+    0x030fb25c  29 FD 44 D3  lsr x9,x9,#0x4
+    0x030fb260  0B 05 00 11  add w11,w8,#0x1
+    0x030fb264  3F 01 0B 6B  cmp w9,w11
+    0x030fb268  0C 0B 00 54  b.gt 0x030fb3c8
+    0x030fb26c  6B 0E 40 F9  ldr x11,[x19, #0x18]
+    0x030fb270  6A 01 0A CB  sub x10,x11,x10
+    0x030fb274  4A FD 44 D3  lsr x10,x10,#0x4
+    0x030fb278  5F 01 08 6B  cmp w10,w8
+    0x030fb27c  CA 0A 00 54  b.ge 0x030fb3d4
+    0x030fb280  28 79 1F 53  lsl w8,w9,#0x1
+    0x030fb284  09 48 88 52  mov w9,#0x4240
+    0x030fb288  4A 09 00 11  add w10,w10,#0x2
+    0x030fb28c  E9 01 A0 72  movk w9,#0xf, LSL #16
+    0x030fb290  E0 03 13 AA  mov x0,x19
+    0x030fb294  22 00 80 52  mov w2,#0x1
+    0x030fb298  1F 01 09 6B  cmp w8,w9
+    0x030fb29c  08 B1 89 1A  csel w8,w8,w9,lt
+    0x030fb2a0  1F 01 0A 6B  cmp w8,w10
+    0x030fb2a4  01 C1 8A 1A  csel w1,w8,w10,gt
+    0x030fb2a8  AF FD FF 97  bl 0x030fa964
+    0x030fb2ac  61 0E 40 F9  ldr x1,[x19, #0x18]
+    0x030fb2b0  88 3E 40 F9  ldr x8,[x20, #0x78]
+    0x030fb2b4  28 00 00 F9  str x8,[x1]
+    0x030fb2b8  88 02 42 39  ldrb w8,[x20, #0x80]
+    0x030fb2bc  34 08 00 F9  str x20,[x1, #0x10]
+    0x030fb2c0  28 20 00 39  strb w8,[x1, #0x8]
+    0x030fb2c4  88 22 40 39  ldrb w8,[x20, #0x8]
+    0x030fb2c8  08 01 1A 32  orr w8,w8,#0x40
+    0x030fb2cc  28 60 00 39  strb w8,[x1, #0x18]
+    0x030fb2d0  68 0E 40 F9  ldr x8,[x19, #0x18]
+    0x030fb2d4  09 81 00 91  add x9,x8,#0x20
+    0x030fb2d8  68 16 40 F9  ldr x8,[x19, #0x28]
+    0x030fb2dc  69 0E 00 F9  str x9,[x19, #0x18]
+    0x030fb2e0  0A 05 40 F9  ldr x10,[x8, #0x8]
+    0x030fb2e4  5F 01 09 EB  cmp x10,x9
+    0x030fb2e8  62 00 00 54  b.cs 0x030fb2f4
+    0x030fb2ec  09 05 00 F9  str x9,[x8, #0x8]
+    0x030fb2f0  68 16 40 F9  ldr x8,[x19, #0x28]
+    0x030fb2f4  08 7D 40 79  ldrh w8,[x8, #0x3e]
+    0x030fb2f8  49 01 80 52  mov w9,#0xa
+    0x030fb2fc  1F 01 09 6A  tst w8,w9
+    0x030fb300  68 B2 40 B9  ldr w8,[x19, #0xb0]
+    0x030fb304  40 03 00 54  b.eq 0x030fb36c
+    0x030fb308  E9 83 00 32  orr w9,wzr,#0x10001
+    0x030fb30c  08 01 09 0B  add w8,w8,w9
+    0x030fb310  09 31 1D 12  and w9,w8,#0xfff8
+    0x030fb314  68 B2 00 B9  str w8,[x19, #0xb0]
+    0x030fb318  3F 21 03 71  cmp w9,#0xc8
+    0x030fb31c  C2 04 00 54  b.cs 0x030fb3b4
+    0x030fb320  E0 03 13 AA  mov x0,x19
+    0x030fb324  E2 03 1F 2A  mov w2,wzr
+    0x030fb328  68 01 00 94  bl 0x030fb8c8
+    0x030fb32c  E1 03 00 AA  mov x1,x0
+    0x030fb330  35 00 A0 12  mov w21,#0xfffeffff
+    0x030fb334  A0 00 00 B4  cbz x0,0x030fb348
+    0x030fb338  88 00 80 52  mov w8,#0x4
+    0x030fb33c  E0 03 13 AA  mov x0,x19
+    0x030fb340  28 7C 00 79  strh w8,[x1, #0x3e]
+    0x030fb344  1A 9C 00 94  bl 0x031223ac
+    0x030fb348  68 B2 40 B9  ldr w8,[x19, #0xb0]
+    0x030fb34c  29 00 80 52  mov w9,#0x1
+    0x030fb350  08 01 15 0B  add w8,w8,w21
+    0x030fb354  68 B2 00 B9  str w8,[x19, #0xb0]
+    0x030fb358  89 42 00 39  strb w9,[x20, #0x10]
+    0x030fb35c  F4 4F 42 A9  ldp x20,x19,[sp, #0x20]
+    0x030fb360  F5 0B 40 F9  ldr x21,[sp, #0x10]
+    0x030fb364  FD 7B C3 A8  ldp x29,x30,[sp], #0x30
+    0x030fb368  C0 03 5F D6  ret
+    0x030fb36c  08 05 00 11  add w8,w8,#0x1
+    0x030fb370  09 31 1D 12  and w9,w8,#0xfff8
+    0x030fb374  68 B2 00 B9  str w8,[x19, #0xb0]
+    0x030fb378  3F 21 03 71  cmp w9,#0xc8
+    0x030fb37c  C2 03 00 54  b.cs 0x030fb3f4
+    0x030fb380  E0 03 13 AA  mov x0,x19
+    0x030fb384  E2 03 1F 2A  mov w2,wzr
+    0x030fb388  50 01 00 94  bl 0x030fb8c8
+    0x030fb38c  E1 03 00 AA  mov x1,x0
+    0x030fb390  15 00 80 12  mov w21,#0xffffffff
+    0x030fb394  20 FD FF B5  cbnz x0,0x030fb338
+    0x030fb398  EC FF FF 17  b 0x030fb348
+    0x030fb39c  88 0E 40 F9  ldr x8,[x20, #0x18]
+    0x030fb3a0  81 43 FF 90  adrp x1,0x196b000
+    0x030fb3a4  21 E8 10 91  add x1,x1,#0x43a
+    0x030fb3a8  E0 03 13 AA  mov x0,x19
+    0x030fb3ac  02 81 00 91  add x2,x8,#0x20
+
+  BL/BLR TARGETS (12):
+    0x030fb204 -> 0x030fb1d0 elf=0x031B3804 FUN_030fb1d0
+    0x030fb244 -> 0x030ffecc elf=0x031B8500 FUN_030ffecc
+    0x030fb2a8 -> 0x030fa964 elf=0x031B2F98 FUN_030fa964
+    0x030fb328 -> 0x030fb8c8 elf=0x031B3EFC FUN_030fb8c8 <<<< luaD_precall
+    0x030fb344 -> 0x031223ac elf=0x031DA9E0 FUN_031223ac <<<< luaV_execute
+    0x030fb388 -> 0x030fb8c8 elf=0x031B3EFC FUN_030fb8c8 <<<< luaD_precall
+    0x030fb3b0 -> 0x030f81bc elf=0x031B07F0 FUN_030f81bc
+    0x030fb3bc -> 0x031132ac elf=0x031CB8E0 FUN_031132ac
+    0x030fb3d0 -> 0x030fa7a4 elf=0x031B2DD8 FUN_030fa7a4 <<<< lua_load
+    0x030fb3e0 -> 0x030fa964 elf=0x031B2F98 FUN_030fa964
+    0x030fb3f0 -> 0x030f81bc elf=0x031B07F0 FUN_030f81bc
+    0x030fb3fc -> 0x031132ac elf=0x031CB8E0 FUN_031132ac
+
+  CALLERS (2):
+    0x030faf34 elf=0x031B3568 FUN_030faf34 (size=668)
+    0x030fb1d0 elf=0x031B3804 FUN_030fb1d0 (size=568)
+
+  PATTERN MATCH:
+    calls luaD_rawrunprotected: False
+    calls luaD_precall: True
+    calls luaV_execute: True
+    calls luaD_protectedparser: False
+    >>> Matches luaD_callnoyield / luaD_call pattern
+
+######################################################################
+  BONUS: Who calls lua_load? (to find lua_pcallk)
+######################################################################
+  lua_load has 38 callers:
+    0x030e1148 elf=0x0319977C FUN_030e1148 size=56 callers=56 rawrun=False precall=False
+    0x03106998 elf=0x031BEFCC FUN_03106998 size=184 callers=1 rawrun=False precall=False
+    0x030f86b8 elf=0x031B0CEC FUN_030f86b8 size=108 callers=8 rawrun=False precall=False
+    0x030fa7a4 elf=0x031B2DD8 FUN_030fa7a4 size=292 callers=38 rawrun=False precall=False
+    0x030fa964 elf=0x031B2F98 FUN_030fa964 size=352 callers=20 rawrun=False precall=False
+    0x030faac4 elf=0x031B30F8 FUN_030faac4 size=172 callers=3 rawrun=False precall=False
+    0x030fb8c8 elf=0x031B3EFC FUN_030fb8c8 size=2148 callers=11 rawrun=False precall=True
+    0x030facdc elf=0x031B3310 FUN_030facdc size=468 callers=6 rawrun=False precall=False
+    0x030faf34 elf=0x031B3568 FUN_030faf34 size=668 callers=3 rawrun=False precall=False
+    0x030fb1d0 elf=0x031B3804 FUN_030fb1d0 size=568 callers=2 rawrun=False precall=True
+    0x03109b2c elf=0x031C2160 FUN_03109b2c size=132 callers=30 rawrun=False precall=False
+    0x031132ac elf=0x031CB8E0 FUN_031132ac size=56 callers=10 rawrun=False precall=False
+    0x03114480 elf=0x031CCAB4 FUN_03114480 size=500 callers=29 rawrun=False precall=False
+    0x0311a04c elf=0x031D2680 FUN_0311a04c size=1076 callers=7 rawrun=False precall=False
+    0x030f89e8 elf=0x031B101C FUN_030f89e8 size=1924 callers=91 rawrun=False precall=False
+    0x03109894 elf=0x031C1EC8 FUN_03109894 size=156 callers=17 rawrun=False precall=False
+    0x0310452c elf=0x031BCB60 FUN_0310452c size=340 callers=13 rawrun=False precall=False
+    0x0311f37c elf=0x031D79B0 FUN_0311f37c size=52 callers=28 rawrun=False precall=False
+    0x030fe7b0 elf=0x031B6DE4 FUN_030fe7b0 size=248 callers=3 rawrun=False precall=False
+    0x030e16f0 elf=0x03199D24 FUN_030e16f0 size=328 callers=18 rawrun=False precall=False
+    0x030e0f2c elf=0x03199560 FUN_030e0f2c size=540 callers=795 rawrun=False precall=False
+    0x031068b8 elf=0x031BEEEC FUN_031068b8 size=224 callers=8 rawrun=False precall=False
+    0x03106a50 elf=0x031BF084 FUN_03106a50 size=168 callers=6 rawrun=False precall=False
+    0x030fb6d4 elf=0x031B3D08 FUN_030fb6d4 size=500 callers=1 rawrun=False precall=False
+    0x030ede90 elf=0x031A64C4 FUN_030ede90 size=804 callers=2 rawrun=False precall=False
+    0x030e1180 elf=0x031997B4 FUN_030e1180 size=320 callers=2 rawrun=False precall=False
+    0x030fac1c elf=0x031B3250 FUN_030fac1c size=192 callers=4 rawrun=False precall=False
+    0x030e1400 elf=0x03199A34 FUN_030e1400 size=444 callers=106 rawrun=False precall=False
+    0x030e12c0 elf=0x031998F4 FUN_030e12c0 size=320 callers=2 rawrun=False precall=False
+    0x03109784 elf=0x031C1DB8 FUN_03109784 size=272 callers=53 rawrun=False precall=False
+    0x030fc7b0 elf=0x031B4DE4 FUN_030fc7b0 size=120 callers=1 rawrun=False precall=False
+    0x030e18d8 elf=0x03199F0C FUN_030e18d8 size=320 callers=2 rawrun=False precall=False
+    0x03109930 elf=0x031C1F64 FUN_03109930 size=192 callers=7 rawrun=False precall=False
+    0x030fca18 elf=0x031B504C FUN_030fca18 size=264 callers=0 rawrun=False precall=False
+    0x030e2a24 elf=0x0319B058 FUN_030e2a24 size=488 callers=1 rawrun=False precall=False
