@@ -1,0 +1,330 @@
+==============================================================================
+  Ghidra Headless Lua Function Scanner for libGame.so (ARM64)
+  Scan time: 2026-04-02 22:15:08
+  Rebase delta: 0xB8634 (ELF_VA - GHIDRA_VA)
+==============================================================================
+
+Program: libGame.so
+Language: AARCH64:LE:64:v8A
+Image Base: 0x00100000
+
+------------------------------------------------------------------------------
+STEP 1: Exported luaopen_* symbols
+------------------------------------------------------------------------------
+  luaopen_socket_core                      VA=0x03184d20  sig=FD 7B BE A9 F3 0B 00 F9 FD 03 00 91 F3 03 00 AA
+  luaopen_mime_core                        VA=0x03184f9c  sig=FD 7B BE A9 F3 0B 00 F9 FD 03 00 91 E1 03 1F 2A
+  luaopen_socket_serial                    VA=0x03188830  sig=FD 7B BE A9 F4 4F 01 A9 FD 03 00 91 B4 3A FF D0
+  luaopen_socket_unix                      VA=0x0318aa10  sig=FD 7B BE A9 F4 4F 01 A9 FD 03 00 91 E1 03 1F 2A
+  luaopen_memory_leak_checker              VA=0x031924d8  sig=FD 7B BE A9 F3 0B 00 F9 FD 03 00 91 08 00 D0 D2
+
+  Found 5 luaopen_* functions
+
+------------------------------------------------------------------------------
+STEP 2: BL call-graph from luaopen_* (depth=2)
+------------------------------------------------------------------------------
+  Depth-1 unique targets: 25
+  Depth-2 unique targets: 31
+  Total unique targets: 46
+
+------------------------------------------------------------------------------
+STEP 3: Verification of known VA addresses
+------------------------------------------------------------------------------
+  luaD_call                           ghidra=0x030DD718  elf=0x03195D4C  (no function, code exists)
+    bytes: 0A 14 40 F9 E8 03 01 2A F3 03 00 AA 3F 04 00 71
+  lua_setfield                        ghidra=0x030DE104  elf=0x03196738  (no function, code exists)
+    bytes: F5 03 01 AA F3 03 00 AA C2 04 00 34 E0 03 13 AA
+  lua_createtable                     ghidra=0x030E0030  elf=0x03198664  (no function, code exists)
+    bytes: F4 03 02 2A F5 03 01 2A F3 03 00 AA 72 E9 00 94
+  luaD_rawrunprotected                ghidra=0x030E57A4  elf=0x0319DDD8  (no function, code exists)
+    bytes: FD 03 00 91 FF 43 07 D1 E2 0F 08 A9 E9 03 00 91
+  dispatch_hook                       ghidra=0x030E611C  elf=0x0319E750  (no function, code exists)
+    bytes: F4 4F 03 A9 FD 63 00 91 55 D0 3B D5 E2 13 00 91
+  luaL_setfuncs                       ghidra=0x030E72C0  elf=0x0319F8F4  (no function, code exists)
+    bytes: FD 03 00 91 F5 03 01 AA E1 03 02 2A F3 03 02 2A
+  lua_load_wrapper                    ghidra=0x030FA7B4  elf=0x031B2DE8  (no function, code exists)
+    bytes: 08 2C 40 F9 F3 03 00 AA E2 03 01 2A 28 03 00 B5
+  luaD_precall                        ghidra=0x030FB8D8  elf=0x031B3F0C  (no function, code exists)
+    bytes: F8 5F 04 A9 F6 57 05 A9 F4 4F 06 A9 FD 43 00 91
+  lua_pcallk_candidate                ghidra=0x030FC1C0  elf=0x031B47F4  (no function, code exists)
+    bytes: 08 B0 40 B9 E9 83 00 32 F3 03 00 AA 08 01 09 0B
+  luaD_protectedparser                ghidra=0x030FE9DC  elf=0x031B7010  (no function, code exists)
+    bytes: F6 57 04 A9 F4 4F 05 A9 FD 03 00 91 15 20 40 F9
+  luaV_execute                        ghidra=0x031223C0  elf=0x031DA9F4  (no function, code exists)
+    bytes: F6 57 05 A9 F4 4F 06 A9 FD 43 00 91 FF 83 08 D1
+  luaopen_socket_core                 ghidra=0x03184D20  elf=0x0323D354  name=luaopen_socket_core       size=  212  xrefs=3
+    sig: FD 7B BE A9 F3 0B 00 F9 FD 03 00 91 F3 03 00 AA
+  luaopen_mime_core                   ghidra=0x03184F9C  elf=0x0323D5D0  name=luaopen_mime_core         size=  108  xrefs=2
+    sig: FD 7B BE A9 F3 0B 00 F9 FD 03 00 91 E1 03 1F 2A
+  luaopen_socket_serial               ghidra=0x03188830  elf=0x03240E64  name=luaopen_socket_serial     size=   96  xrefs=1
+    sig: FD 7B BE A9 F4 4F 01 A9 FD 03 00 91 B4 3A FF D0
+  luaopen_socket_unix                 ghidra=0x0318AA10  elf=0x03243044  name=luaopen_socket_unix       size=  216  xrefs=1
+    sig: FD 7B BE A9 F4 4F 01 A9 FD 03 00 91 E1 03 1F 2A
+  luaopen_memory_leak_checker         ghidra=0x031924D8  elf=0x0324AB0C  name=luaopen_memory_leak_checker size=   88  xrefs=1
+    sig: FD 7B BE A9 F3 0B 00 F9 FD 03 00 91 08 00 D0 D2
+
+------------------------------------------------------------------------------
+STEP 4: Core API functions (called by 2+ luaopen_*)
+------------------------------------------------------------------------------
+
+  VA=0x030e0020      fan-in=5  name=FUN_030e0020
+  sig: FD 7B BD A9 F5 0B 00 F9 F4 4F 02 A9 FD 03 00 91 F4 03 02 2A F5 03 01 2A F3 03 00 AA 72 E9 00 94
+  tags: bl=2 blr=0 size=148 sxtw=False xrefs=254
+  >>> GUESS: lua_createtable?
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x030de0f4      fan-in=5  name=FUN_030de0f4
+  sig: FD 7B BD A9 F5 0B 00 F9 F4 4F 02 A9 FD 03 00 91 F5 03 01 AA F3 03 00 AA C2 04 00 34 E0 03 13 AA
+  tags: bl=1 blr=0 size=220 sxtw=True xrefs=3762
+  >>> GUESS: lua_pcallk?
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x030e72b0      fan-in=4  name=FUN_030e72b0
+  sig: FD 7B BC A9 F8 5F 01 A9 F6 57 02 A9 F4 4F 03 A9 FD 03 00 91 F5 03 01 AA E1 03 02 2A F3 03 02 2A
+  tags: bl=6 blr=0 size=212 sxtw=False xrefs=66
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_unix
+
+  VA=0x030e0798      fan-in=4  name=FUN_030e0798
+  sig: 09 14 40 F9 3F 04 00 71 EB 00 00 54 28 01 40 F9 01 51 21 8B 08 0C 40 F9 3F 00 08 EB E2 02 00 54
+  tags: bl=0 blr=0 size=152 sxtw=True xrefs=468
+  >>> GUESS: lua_createtable?
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_unix
+
+  VA=0x030dc974      fan-in=4  name=FUN_030dc974
+  sig: 08 0C 40 F9 0A 14 40 F9 3F 04 00 71 0B 01 00 54 49 01 40 F9 29 51 21 8B 3F 01 08 EB E3 01 00 54
+  tags: bl=0 blr=0 size=172 sxtw=True xrefs=498
+  >>> GUESS: lua_createtable?
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_unix
+
+  VA=0x0311a604      fan-in=4  name=FUN_0311a604
+  sig: FD 7B BF A9 FD 03 00 91 A1 00 80 52 02 08 80 52 F4 92 FF 97 E8 0F 80 52 1F 14 00 B9 08 20 00 79
+  tags: bl=1 blr=0 size=56 sxtw=False xrefs=10
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_unix
+
+  VA=0x0311a04c      fan-in=4  name=FUN_0311a04c
+  sig: FF 03 03 D1 FD 7B 06 A9 FC 6F 07 A9 FA 67 08 A9 F8 5F 09 A9 F6 57 0A A9 F4 4F 0B A9 FD 83 01 91
+  tags: bl=10 blr=0 size=1076 sxtw=False xrefs=7
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_unix
+
+  VA=0x030de1d0      fan-in=4  name=FUN_030de1d0
+  sig: 28 02 80 52 09 0C 40 F9 3F 00 00 71 08 15 9F 1A 28 21 00 39 08 0C 40 F9 08 41 00 91 08 0C 00 F9
+  tags: bl=0 blr=0 size=36 sxtw=False xrefs=2304
+  >>> GUESS: lua_createtable?
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial
+
+  VA=0x030ddf2c      fan-in=3  name=FUN_030ddf2c
+  sig: FD 7B BE A9 F4 4F 01 A9 FD 03 00 91 F3 03 00 AA 41 01 00 B4 E0 03 13 AA EF D9 00 94 68 0E 40 F9
+  tags: bl=2 blr=0 size=116 sxtw=False xrefs=5176
+  >>> GUESS: lua_createtable?
+  called by: luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial
+
+  VA=0x030e09dc      fan-in=3  name=FUN_030e09dc
+  sig: 08 0C 40 F9 43 00 80 52 02 81 00 D1 01 00 00 14 FD 7B BD A9 F5 0B 00 F9 F4 4F 02 A9 FD 03 00 91
+  tags: bl=2 blr=0 size=308 sxtw=True xrefs=736
+  >>> GUESS: lua_pcallk?
+  called by: luaopen_mime_core, luaopen_socket_core, luaopen_socket_serial
+
+  VA=0x03182d9c      fan-in=3  name=FUN_03182d9c
+  sig: FD 7B BD A9 F6 57 01 A9 F4 4F 02 A9 FD 03 00 91 F4 03 02 AA F5 03 01 AA F3 03 00 AA 99 8B FD 97
+  tags: bl=10 blr=0 size=216 sxtw=False xrefs=11
+  called by: luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x03183030      fan-in=3  name=FUN_03183030
+  sig: FD 7B BE A9 F4 4F 01 A9 FD 03 00 91 F3 03 02 AA E2 03 01 AA 01 3B 97 52 01 FE BF 72 F4 03 00 AA
+  tags: bl=4 blr=0 size=92 sxtw=False xrefs=15
+  called by: luaopen_socket_core, luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x030dc4c4      fan-in=3  name=FUN_030dc4c4
+  sig: FD 7B BD A9 F5 0B 00 F9 F4 4F 02 A9 FD 03 00 91 13 A8 42 A9 34 7C 40 93 09 0C 40 F9 E8 03 00 AA
+  tags: bl=1 blr=0 size=192 sxtw=True xrefs=1094
+  >>> GUESS: lua_pcallk?, lua_createtable?
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core
+
+  VA=0x030e5794      fan-in=3  name=FUN_030e5794
+  sig: FD 7B BC A9 FC 0B 00 F9 F6 57 02 A9 F4 4F 03 A9 FD 03 00 91 FF 43 07 D1 E2 0F 08 A9 E9 03 00 91
+  tags: bl=8 blr=0 size=288 sxtw=False xrefs=30800
+  called by: luaopen_memory_leak_checker, luaopen_mime_core, luaopen_socket_core
+
+  VA=0x03114700      fan-in=3  name=FUN_03114700
+  sig: FD 7B BC A9 F7 0B 00 F9 F6 57 02 A9 F4 4F 03 A9 FD 03 00 91 68 F6 99 52 29 7C 40 92 F3 03 01 AA
+  tags: bl=4 blr=0 size=188 sxtw=False xrefs=80
+  called by: luaopen_mime_core, luaopen_socket_core, luaopen_socket_unix
+
+  VA=0x030de6c0      fan-in=2  name=FUN_030de6c0
+  sig: FD 7B BD A9 F5 0B 00 F9 F4 4F 02 A9 FD 03 00 91 0A 14 40 F9 E8 03 01 2A F3 03 00 AA 3F 04 00 71
+  tags: bl=3 blr=0 size=340 sxtw=True xrefs=251
+  >>> GUESS: lua_pcallk?
+  called by: luaopen_socket_serial, luaopen_socket_unix
+
+  VA=0x030ffecc      fan-in=2  name=FUN_030ffecc
+  sig: FF C3 01 D1 FD 7B 01 A9 FC 6F 02 A9 FA 67 03 A9 F8 5F 04 A9 F6 57 05 A9 F4 4F 06 A9 FD 43 00 91
+  tags: bl=19 blr=0 size=2016 sxtw=False xrefs=45
+  called by: luaopen_mime_core, luaopen_socket_core
+
+  VA=0x0311acf8      fan-in=2  name=FUN_0311acf8
+  sig: FD 7B BD A9 F5 0B 00 F9 F4 4F 02 A9 FD 03 00 91 F4 03 01 AA F5 03 00 AA E0 03 01 AA E1 03 02 AA
+  tags: bl=1 blr=0 size=96 sxtw=False xrefs=5
+  called by: luaopen_mime_core, luaopen_socket_core
+
+  VA=0x030ff020      fan-in=2  name=FUN_030ff020
+  sig: 28 24 40 39 09 09 00 12 3F 19 00 71 81 00 00 54 C9 18 80 52 08 01 09 0A 2A 00 00 14 2A 20 40 39
+  tags: bl=0 blr=0 size=220 sxtw=False xrefs=53
+  called by: luaopen_mime_core, luaopen_socket_core
+
+  VA=0x030fe5c8      fan-in=2  name=FUN_030fe5c8
+  sig: FD 7B BE A9 F3 0B 00 F9 FD 03 00 91 28 6C 1C 53 F3 03 01 2A C1 04 80 52 08 A1 00 11 02 7D 40 93
+  tags: bl=1 blr=0 size=52 sxtw=True xrefs=1
+  >>> GUESS: lua_pcallk?
+  called by: luaopen_socket_serial, luaopen_socket_unix
+
+  Total core API functions: 20
+
+------------------------------------------------------------------------------
+STEP 5: Detailed analysis of key hook targets
+------------------------------------------------------------------------------
+
+--- lua_pcallk (ghidra=0x030FC1C0  elf=0x031B47F4) ---
+  NO FUNCTION (but code exists)
+  bytes: 08 B0 40 B9 E9 83 00 32 F3 03 00 AA 08 01 09 0B 09 31 1D 12 08 B0 00 B9 3F 21 03 71 22 02 00 54
+  Inside function: FUN_030fc1b0 at 0x030fc1b0
+
+--- lua_load (ghidra=0x030FA7B4  elf=0x031B2DE8) ---
+  NO FUNCTION (but code exists)
+  bytes: 08 2C 40 F9 F3 03 00 AA E2 03 01 2A 28 03 00 B5 61 1E 40 F9 74 12 40 F9 E0 03 13 AA 7F 10 00 94
+  Inside function: FUN_030fa7a4 at 0x030fa7a4
+
+--- luaD_pcall (ghidra=0x030E611C  elf=0x0319E750) ---
+  NO FUNCTION (but code exists)
+  bytes: F4 4F 03 A9 FD 63 00 91 55 D0 3B D5 E2 13 00 91 F3 03 01 2A A8 16 40 F9 F4 03 00 AA E8 07 00 F9
+  Inside function: FUN_030e610c at 0x030e610c
+
+--- luaD_precall (ghidra=0x030FB8D8  elf=0x031B3F0C) ---
+  NO FUNCTION (but code exists)
+  bytes: F8 5F 04 A9 F6 57 05 A9 F4 4F 06 A9 FD 43 00 91 48 00 80 12 17 48 88 52 5F 08 00 31 F7 01 A0 72
+  Inside function: FUN_030fb8c8 at 0x030fb8c8
+
+--- luaV_execute (ghidra=0x031223C0  elf=0x031DA9F4) ---
+  NO FUNCTION (but code exists)
+  bytes: F6 57 05 A9 F4 4F 06 A9 FD 43 00 91 FF 83 08 D1 48 D0 3B D5 A9 23 01 D1 F9 03 01 AA E8 07 00 F9
+  Inside function: FUN_031223ac at 0x031223ac
+
+--- luaD_protectedparser (ghidra=0x030FE9DC  elf=0x031B7010) ---
+  NO FUNCTION (but code exists)
+  bytes: F6 57 04 A9 F4 4F 05 A9 FD 03 00 91 15 20 40 F9 F8 03 02 2A F5 0E 00 B4 FA 63 02 D0 F3 03 00 AA
+  Inside function: FUN_030fe9cc at 0x030fe9cc
+
+--- luaD_rawrunprotected (ghidra=0x030E57A4  elf=0x0319DDD8) ---
+  NO FUNCTION (but code exists)
+  bytes: FD 03 00 91 FF 43 07 D1 E2 0F 08 A9 E9 03 00 91 EA 03 02 91 E4 17 09 A9 29 01 02 91 F4 03 01 AA
+  Inside function: FUN_030e5794 at 0x030e5794
+
+--- luaD_call (ghidra=0x030DD718  elf=0x03195D4C) ---
+  NO FUNCTION (but code exists)
+  bytes: 0A 14 40 F9 E8 03 01 2A F3 03 00 AA 3F 04 00 71 2B 01 00 54 49 01 40 F9 21 51 28 8B 69 0E 40 F9
+  Inside function: FUN_030dd708 at 0x030dd708
+
+--- lua_createtable (ghidra=0x030E0030  elf=0x03198664) ---
+  NO FUNCTION (but code exists)
+  bytes: F4 03 02 2A F5 03 01 2A F3 03 00 AA 72 E9 00 94 68 0E 40 F9 A9 08 80 52 E1 03 00 AA BF 02 00 71
+  Inside function: FUN_030e0020 at 0x030e0020
+
+--- lua_setfield (ghidra=0x030DE104  elf=0x03196738) ---
+  NO FUNCTION (but code exists)
+  bytes: F5 03 01 AA F3 03 00 AA C2 04 00 34 E0 03 13 AA E1 03 02 2A F4 03 02 2A 2B 81 00 94 15 10 00 F9
+  Inside function: FUN_030de0f4 at 0x030de0f4
+
+--- luaL_setfuncs (ghidra=0x030E72C0  elf=0x0319F8F4) ---
+  NO FUNCTION (but code exists)
+  bytes: FD 03 00 91 F5 03 01 AA E1 03 02 2A F3 03 02 2A F4 03 00 AA 7C D4 FF 97 E0 00 00 35 E1 37 FF D0
+  Inside function: FUN_030e72b0 at 0x030e72b0
+
+------------------------------------------------------------------------------
+STEP 6: Large functions (>15KB)
+------------------------------------------------------------------------------
+  VA=0x05411d80  size=219168 (214.0 KB)  name=FUN_05411d80
+    sig: FD 7B BE A9 F3 0B 00 F9 FD 03 00 91 00 32 80 52
+  VA=0x037eb008  size=176124 (172.0 KB)  name=FUN_037eb008
+    sig: EA 0A FF D0 4A ED 30 91 E1 97 0D FD EA 93 0D F9
+  VA=0x059c690c  size= 53540 ( 52.3 KB)  name=FUN_059c690c
+    sig: EC 0F 17 FC EB 2B 01 6D E9 23 02 6D FD 7B 03 A9
+  VA=0x02e3a4a4  size= 51048 ( 49.9 KB)  name=FUN_02e3a4a4
+    sig: FC 6F BA A9 FA 67 01 A9 F8 5F 02 A9 F6 57 03 A9
+  VA=0x06b642bc  size= 49036 ( 47.9 KB)  name=FUN_06b642bc
+    sig: FF 03 02 D1 FD 7B 03 A9 F9 23 00 F9 F8 5F 05 A9
+  VA=0x05bcb41c  size= 48288 ( 47.2 KB)  name=FUN_05bcb41c
+    sig: FF C3 07 D1 E8 C3 00 FD FD 7B 19 A9 FC 6F 1A A9
+  VA=0x0332355c  size= 29964 ( 29.3 KB)  name=FUN_0332355c
+    sig: FF C3 06 D1 EF 3B 11 6D ED 33 12 6D EB 2B 13 6D
+  VA=0x02ebfe18  size= 29068 ( 28.4 KB)  name=FUN_02ebfe18
+    sig: FF C3 04 D1 EB 2B 0B 6D E9 23 0C 6D FD 7B 0D A9
+  VA=0x031223ac  size= 28524 ( 27.9 KB)  name=FUN_031223ac
+    sig: E9 23 B9 6D FD 7B 01 A9 FC 6F 02 A9 FA 67 03 A9
+  VA=0x07418058  size= 27472 ( 26.8 KB)  name=FUN_07418058
+    sig: FD 7B BA A9 FC 6F 01 A9 FA 67 02 A9 F8 5F 03 A9
+  VA=0x06a9d2e0  size= 26816 ( 26.2 KB)  name=FUN_06a9d2e0
+    sig: FF 83 02 D1 FD 7B 04 A9 FC 6F 05 A9 FA 67 06 A9
+  VA=0x068458b8  size= 24668 ( 24.1 KB)  name=FUN_068458b8
+    sig: FF 83 02 D1 FD 7B 04 A9 FC 6F 05 A9 FA 67 06 A9
+  VA=0x02eb7f58  size= 23540 ( 23.0 KB)  name=FUN_02eb7f58
+    sig: ED 33 B7 6D EB 2B 01 6D E9 23 02 6D FD 7B 03 A9
+  VA=0x050563d0  size= 22612 ( 22.1 KB)  name=FUN_050563d0
+    sig: EF 3B B6 6D ED 33 01 6D EB 2B 02 6D E9 23 03 6D
+  VA=0x05be2378  size= 22220 ( 21.7 KB)  name=FUN_05be2378
+    sig: FF 03 07 D1 E8 AB 00 FD FD 7B 16 A9 FC 6F 17 A9
+  VA=0x02eb0b38  size= 21892 ( 21.4 KB)  name=FUN_02eb0b38
+    sig: FF C3 06 D1 EF 3B 11 6D ED 33 12 6D EB 2B 13 6D
+  VA=0x0500393c  size= 21628 ( 21.1 KB)  name=FUN_0500393c
+    sig: EF 3B B6 6D ED 33 01 6D EB 2B 02 6D E9 23 03 6D
+  VA=0x04155700  size= 21232 ( 20.7 KB)  name=FUN_04155700
+    sig: EF 3B B6 6D ED 33 01 6D EB 2B 02 6D E9 23 03 6D
+  VA=0x03816004  size= 20728 ( 20.2 KB)  name=FUN_03816004
+    sig: 09 FE FE 90 E1 65 03 FD 21 D9 43 FD 69 FE FE B0
+  VA=0x02e90af8  size= 20564 ( 20.1 KB)  name=FUN_02e90af8
+    sig: EF 3B B6 6D ED 33 01 6D EB 2B 02 6D E9 23 03 6D
+
+------------------------------------------------------------------------------
+STEP 7: Functions with 'lua' in name
+------------------------------------------------------------------------------
+  Found 5 functions with 'lua' in name
+  VA=0x03184d20  size=  212  name=luaopen_socket_core
+  VA=0x03184f9c  size=  108  name=luaopen_mime_core
+  VA=0x03188830  size=   96  name=luaopen_socket_serial
+  VA=0x0318aa10  size=  216  name=luaopen_socket_unix
+  VA=0x031924d8  size=   88  name=luaopen_memory_leak_checker
+
+------------------------------------------------------------------------------
+STEP 8: String references with Lua keywords
+------------------------------------------------------------------------------
+  0x00157420: "_ZN3MNN7Express4Expr11requireInfoEv"
+  0x00163483: "_ZNK3MNN7Express8Executor14getRequirementEPNS0_4ExprE"
+  0x0018a078: "ak_rpcalloc"
+  0x0018af62: "luaopen_memory_leak_checker"
+  0x0018af7e: "luaopen_mime_core"
+  0x0018af90: "luaopen_socket_core"
+  0x0018afa4: "luaopen_socket_serial"
+  0x0018afba: "luaopen_socket_unix"
+  0x0018fe5f: "vp9_scale_if_required"
+  Total lua-related strings: 9 (searched 500000 items)
+
+==============================================================================
+  SUMMARY — Key Hook Targets for Android Port
+==============================================================================
+
+  ┌─────────────────────────┬────────────────┬────────────────┬──────────┬─────────────────────────────┐
+  │ Function                │ Ghidra VA      │ ELF VA         │ Size     │ Status                      │
+  ├─────────────────────────┼────────────────┼────────────────┼──────────┼─────────────────────────────┤
+  │ lua_pcallk              │ 0x030FC1C0     │ 0x031B47F4     │        — │ INSIDE FUN_030fc1b0         │
+  │ lua_load                │ 0x030FA7B4     │ 0x031B2DE8     │        — │ INSIDE FUN_030fa7a4         │
+  │ luaD_pcall              │ 0x030E611C     │ 0x0319E750     │        — │ INSIDE FUN_030e610c         │
+  │ luaD_precall            │ 0x030FB8D8     │ 0x031B3F0C     │        — │ INSIDE FUN_030fb8c8         │
+  │ luaV_execute            │ 0x031223C0     │ 0x031DA9F4     │        — │ INSIDE FUN_031223ac         │
+  │ luaD_protectedparser    │ 0x030FE9DC     │ 0x031B7010     │        — │ INSIDE FUN_030fe9cc         │
+  │ luaD_rawrunprotected    │ 0x030E57A4     │ 0x0319DDD8     │        — │ INSIDE FUN_030e5794         │
+  │ luaD_call               │ 0x030DD718     │ 0x03195D4C     │        — │ INSIDE FUN_030dd708         │
+  │ lua_createtable         │ 0x030E0030     │ 0x03198664     │        — │ INSIDE FUN_030e0020         │
+  │ lua_setfield            │ 0x030DE104     │ 0x03196738     │        — │ INSIDE FUN_030de0f4         │
+  │ luaL_setfuncs           │ 0x030E72C0     │ 0x0319F8F4     │        — │ INSIDE FUN_030e72b0         │
+  └─────────────────────────┴────────────────┴────────────────┴──────────┴─────────────────────────────┘
+
+  Total functions in binary: 192553
+  Scan completed in 27.2 seconds
+

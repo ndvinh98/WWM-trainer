@@ -25,3 +25,4 @@ WWM_APK.zip
 build*/
 output/
 .DS_Store
+ghidra/
