@@ -1,13 +1,14 @@
-// inject_android.cpp — ARM64 Lua hook library for Android (v2)
+// inject_android.cpp — ARM64 Lua hook library for Android (v3)
 //
 // Strategy: dlsym-based hooking of exported luaopen_* symbols
 // No pattern scanning needed — all API addresses computed via delta
 // from the known VA of the hooked exported function.
 //
-// Execution pipeline:
+// Execution pipeline (mirrors Windows inject.cpp):
 //   luaopen_* hook → capture lua_State* L → compute API delta
-//   luaD_pcall hook → dispatch queued TCP commands
-//   ExecuteLua → pcall-wrapped compilation + execution via luaD_protectedparser + luaD_call
+//   → hook lua_pcallk (0x0319DBE4, FUN_030e55b0, 151 callers)
+//   hkLuaPcallk intercepts → dispatches queued TCP commands
+//   ExecuteLua → lua_load + lua_pcallk (original trampoline)
 //   Output → logcat LOGI (print() goes to /dev/null on Android)
 
 #include <android/log.h>
@@ -157,10 +158,11 @@ static void InstallBypassHooks() {
 }
 
 // ===========================================================================
-// Known VA offsets — from luaopen_* BL disassembly (ground truth)
+// Known VA offsets — from Ghidra deep analysis (2026-04-02)
 //
-// These are the virtual addresses in the libGame.so binary. All confirmed
-// by tracing BL targets from exported luaopen_* functions.
+// These are the virtual addresses in the libGame.so binary.
+// lua_pcallk: FUN_030e55b0 — 151 callers, 484 bytes, calls luaD_rawrunprotected ×3
+// lua_load:   FUN_030fa7a4 — 38 callers, 292 bytes, calls luaD_protectedparser
 // ===========================================================================
 
 // Exported symbols (findable via dlsym)
@@ -170,40 +172,26 @@ static constexpr uintptr_t VA_LUAOPEN_SOCKET_SERIAL = 0x3240E64;
 static constexpr uintptr_t VA_LUAOPEN_SOCKET_UNIX = 0x3243044;
 static constexpr uintptr_t VA_LUAOPEN_MEMLEAK = 0x324AB0C;
 
-// Internal API (resolved via delta from exported symbols)
-static constexpr uintptr_t VA_LUA_CREATETABLE = 0x3198664;
-static constexpr uintptr_t VA_LUAL_SETFUNCS = 0x319F8F4;
-static constexpr uintptr_t VA_LUA_SETFIELD = 0x3196738;
-static constexpr uintptr_t VA_DISPATCH_HOOK = 0x319E750;  // 136-byte utility, used for dispatch timing only
-static constexpr uintptr_t VA_LUAD_RAWRUNPROTECTED = 0x319DDD8;
-// REAL luaD_precall: void*(L) — returns ptr passed as arg2 to execute
-static constexpr uintptr_t VA_LUAD_PRECALL = 0x31B3F0C;
-// REAL luaV_execute: void(L, ci_ptr) — 27KB VM loop entry (prologue at 0x31DA9F4, loop at 0x31DAA14)
-static constexpr uintptr_t VA_LUAV_EXECUTE = 0x31DA9F4;
-static constexpr uintptr_t VA_LUAD_PROTPARSER = 0x31B7010;
-static constexpr uintptr_t VA_LUA_LOAD_WRAPPER = 0x31B2DE8;
+// High-level Lua C API (Ghidra deep-verified)
+static constexpr uintptr_t VA_LUA_PCALLK = 0x0319DBE4;  // FUN_030e55b0 — the REAL lua_pcallk (151 callers, 484 bytes)
+static constexpr uintptr_t VA_LUA_LOAD   = 0x031B2DD8;  // FUN_030fa7a4 — lua_load (38 callers, 292 bytes)
 
 // ===========================================================================
-// Lua function types
+// Lua function types (mirrors Windows inject.cpp)
 // ===========================================================================
 
-// luaD_rawrunprotected: int (L, Pfunc func, void *ud)
-// Wraps a call in setjmp for C-level error protection.
-typedef int (*tLuaD_RawRunProtected)(void *L, void (*func)(void *L, void *ud), void *ud);
-// REAL luaV_execute at 0x31DA9F4 — entry to 27KB VM loop
-typedef void (*tLuaV_Execute)(void *L, void *ci);
-// REAL luaD_precall at 0x31B3F0C — returns ptr (CallInfo*) for execute
-// Signature matches Lua 5.4: CallInfo* luaD_precall(lua_State *L, StkId func, int nresults)
-typedef void* (*tLuaD_Precall)(void *L, void *func, int nresults);
+typedef int (*tLuaOpen)(void *L);
 
-// The dispatch hook original — NOT a Lua API function, just used for timing
-typedef int (*tDispatchHookOrig)(void *L, int a1, int a2);
+// lua_load: int (L, reader, data, chunkname, mode)
+typedef int (*tLuaLoad)(void *L, void *reader, void *data,
+                        const char *chunkname, const char *mode);
 
-static tDispatchHookOrig oDispatchHook = nullptr;
-static tLuaD_RawRunProtected pRawRunProtected = nullptr;
-static tLuaD_ProtParser pProtParser = nullptr;
-static tLuaD_Precall pLuaD_Precall = nullptr;
-static tLuaV_Execute pLuaV_Execute = nullptr;
+// lua_pcallk: int (L, nargs, nresults, errfunc, ctx, k)
+typedef int (*tLuaPcallk)(void *L, int nargs, int nresults,
+                          int errfunc, void *ctx, void *k);
+
+static tLuaLoad oLuaLoad = nullptr;
+static tLuaPcallk oLuaPcallk = nullptr;
 
 
 
@@ -213,7 +201,6 @@ static uintptr_t g_delta = 0;
 // Lua state captured from luaopen_* hook
 static std::atomic<void *> g_luaState{nullptr};
 static std::atomic<bool> g_ready{false};
-static std::atomic<int> g_pcallCount{0};
 
 // Command queue
 static std::string g_cmdQueue;
@@ -235,7 +222,7 @@ struct ReaderData {
 };
 
 static const char *MyLuaReader(void * /*L*/, void *ud, size_t *sz) {
-  ReaderData *d = (ReaderData *)ud;
+  auto *d = (ReaderData *)ud;
   if (d->size == 0) {
     *sz = 0;
     return nullptr;
@@ -246,220 +233,91 @@ static const char *MyLuaReader(void * /*L*/, void *ud, size_t *sz) {
 }
 
 // ===========================================================================
-// Read lua_State fields (offsets from runtime probing)
+// Execute Lua code via lua_load + lua_pcallk (mirrors Windows inject.cpp)
 // ===========================================================================
-
-static inline void *LuaGetTop(void *L) {
-  return *(void **)((char *)L + 0x18);
-}
-
-// ===========================================================================
-// Execute Lua code via luaD_protectedparser + luaD_call
-//
-// We bypass lua_load() because it acquires a mutex at L+0x58 which is
-// already held inside hkLuaD_Pcall context → deadlock.
-// Instead we call luaD_protectedparser directly with a properly
-// constructed ZIO struct, mimicking what lua_load does internally.
-//
-// From lua_load disassembly:
-//   LDR x1, [L, #0x38]   ← reads existing Zio pointer from L+0x38
-//   MOV x0, L
-//   BL luaD_protectedparser(L, zio_ptr, mode_flag)
-//
-// So we must:
-//   1. Build a Zio struct on the stack
-//   2. Store its address at L+0x38 (luaD_protectedparser reads it internally)
-//   3. Call pProtParser(L, &zio, 0)  where 0 = text mode
-//   4. Restore L+0x38 after
-//
-// All user code is wrapped in pcall() at the Lua level so errors are
-// ===========================================================================
-// Safe Execution Wrapper (lua_pcall equivalent)
-// ===========================================================================
-
-struct CustomCallS {
-  void *func_stkid;
-  int nresults;
-};
-
-static void custom_f_call(void *L, void *ud) {
-  CustomCallS *c = (CustomCallS *)ud;
-  LOGI("[exec] custom_f_call: L=%p func_stkid=%p", L, c->func_stkid);
-  // Not used in the new approach — kept for reference
-}
 
 static bool ExecuteLua(void *L, const std::string &code, const char *label) {
-  if (!pProtParser || !pLuaD_Precall || !pLuaV_Execute) {
-    LOGE("[%s] APIs not resolved! protparser=%p precall=%p execute=%p", label,
-         (void *)pProtParser, (void *)pLuaD_Precall, (void *)pLuaV_Execute);
+  if (!oLuaLoad || !oLuaPcallk) {
+    LOGE("[%s] APIs not resolved! load=%p pcallk=%p", label,
+         (void *)oLuaLoad, (void *)oLuaPcallk);
     return false;
   }
 
   LOGI("[%s] ExecuteLua (%zu bytes)", label, code.size());
 
-  // Wrap user code in pcall so errors are caught at Lua level.
-  std::string wrapped =
-      "local __ok, __res = pcall(function()\n" + code +
-      "\nend)\n"
-      "if not __ok then\n"
-      "  return false, tostring(__res)\n"
-      "else\n"
-      "  return true, tostring(__res)\n"
-      "end\n";
+  ReaderData rdata = {code.c_str(), code.length()};
 
-  // Construct ZIO struct
-  ReaderData rdata = {wrapped.c_str(), wrapped.length()};
-  uint8_t zio[48] = {};
-  *(void **)(zio + 0x10) = (void *)MyLuaReader;
-  *(void **)(zio + 0x18) = (void *)&rdata;
-  *(void **)(zio + 0x20) = L;
-
-  // Install ZIO at L+0x38
-  void **zioSlot = (void **)((char *)L + 0x38);
-  void *savedZio = *zioSlot;
-  *zioSlot = (void *)zio;
-
-  int loadRc = pProtParser(L, (void *)zio, 0);
-  *zioSlot = savedZio;
-
+  int loadRc = oLuaLoad(L, (void *)MyLuaReader, (void *)&rdata, "@cmd", "t");
   if (loadRc != 0) {
-    LOGE("[%s] luaD_protectedparser FAILED: rc=%d", label, loadRc);
-    void *top = LuaGetTop(L);
-    void *errSlot = (char *)top - 16;
-    int64_t errTt = *(int64_t *)((char *)errSlot + 8);
-    const char *errStr = "(unknown parse error)";
-    if ((errTt & 0x0F) == 4) {
-      void *strObj = *(void **)errSlot;
-      errStr = (const char *)strObj + 0x18;
-    }
-    LOGE("[%s] parse error: %.500s", label, errStr);
+    LOGE("[%s] lua_load FAILED: rc=%d", label, loadRc);
+    std::string result = "LOAD_ERR: rc=" + std::to_string(loadRc);
     {
       std::lock_guard<std::mutex> lock(g_resultMtx);
-      g_lastResult = std::string("PARSE_ERR: ") + errStr;
+      g_lastResult = result;
       g_resultReady.store(true);
     }
     g_resultCv.notify_one();
-    *(void **)((char *)L + 0x18) = errSlot;
     return false;
   }
 
-  LOGI("[%s] parse OK. Compiled chunk on stack.", label);
+  LOGI("[%s] lua_load OK. Calling lua_pcallk...", label);
 
-  // The chunk is at top (this game uses top-inclusive convention)
-  void *topBeforeCall = LuaGetTop(L);
-  void *func_stkid = topBeforeCall;  // function IS at top, not top-1
-  
-  // Verify it's a function
-  int64_t tt = *(int64_t *)((char *)func_stkid + 8);
-  int baseType = (int)(tt & 0x0F);
-  LOGI("[%s] func_stkid=%p tt=0x%llX baseType=%d", label, func_stkid, (long long)tt, baseType);
-
-  // ======================================================================
-  // Execute via the REAL luaD_precall + luaV_execute
-  //
-  // From lua_pcallk disassembly (0x31B47F4):
-  //   void *ci = luaD_precall(L);         // 0x31B3F0C — sets up call frame
-  //   if (ci) luaV_execute(L, ci);         // 0x31DA9F4 — 27KB VM loop
-  //
-  // Before calling precall, advance L->top past the function:
-  //   L->top = func + 1 TValue
-  // ======================================================================
-
-  // Advance L->top past the function
-  void *new_top = (char *)func_stkid + 16;
-  *(void **)((char *)L + 0x18) = new_top;
-  
-  // Advance ci->top if needed
-  void *ci = *(void **)((char *)L + 0x28);
-  void *old_ci_top = *(void **)((char *)ci + 0x8);
-  if ((uintptr_t)new_top > (uintptr_t)old_ci_top) {
-    *(void **)((char *)ci + 0x8) = new_top;
-  }
-  
-  LOGI("[%s] calling luaD_precall(%p)...", label, L);
-  void *precall_ret = pLuaD_Precall(L);
-  LOGI("[%s] luaD_precall returned %p", label, precall_ret);
-
-  if (precall_ret) {
-    LOGI("[%s] calling luaV_execute(%p, %p)...", label, L, precall_ret);
-    pLuaV_Execute(L, precall_ret);
-    LOGI("[%s] luaV_execute returned!", label);
-  } else {
-    LOGI("[%s] precall returned NULL — C function already executed or error", label);
+  int pcallRc = oLuaPcallk(L, 0, 0, 0, nullptr, nullptr);
+  if (pcallRc != 0) {
+    LOGE("[%s] lua_pcallk FAILED: rc=%d", label, pcallRc);
+    std::string result = "PCALL_ERR: rc=" + std::to_string(pcallRc);
+    {
+      std::lock_guard<std::mutex> lock(g_resultMtx);
+      g_lastResult = result;
+      g_resultReady.store(true);
+    }
+    g_resultCv.notify_one();
+    return false;
   }
 
-  // Check results
-  void *postTop = LuaGetTop(L);
-  int stackDiff = ((char *)postTop - (char *)func_stkid) / 16;
-  LOGI("[%s] post-exec: top=%p stackDiff=%d", label, postTop, stackDiff);
-
-  std::string result = "OK (precall=" + 
-                       std::string(precall_ret ? "ci" : "NULL") +
-                       ", stackDiff=" + std::to_string(stackDiff) + ")";
-  LOGI("[%s] ✅ %s", label, result.c_str());
-
-  // Restore stack
-  *(void **)((char *)L + 0x18) = func_stkid;
-
+  LOGI("[%s] ✅ executed successfully", label);
   {
     std::lock_guard<std::mutex> lock(g_resultMtx);
-    g_lastResult = result;
+    g_lastResult = "OK";
     g_resultReady.store(true);
   }
   g_resultCv.notify_one();
-
   return true;
 }
 
 // ===========================================================================
-// ===========================================================================
-// Hook: Dispatch hook (0x319E750)
+// Hook: lua_pcallk — mirrors Windows hkLua_Pcall
 //
-// This function is NOT luaD_pcall. It's a ~136 byte utility that receives
-// small integer arguments (1, 2, 3) and fires ~5000/s. We hook it purely
-// for dispatch timing — after the original returns, we check for queued
-// TCP commands and execute them on the game thread.
+// FUN_030e55b0 (ELF VA 0x0319DBE4) — the REAL lua_pcallk
+// 151 callers, 484 bytes, calls luaD_rawrunprotected ×3
 // ===========================================================================
 
 static thread_local bool g_inExecute = false;
 
-static int hkDispatch(void *L, int a1, int a2) {
+static int hkLuaPcallk(void *L, int nargs, int nresults,
+                       int errfunc, void *ctx, void *k) {
   // Re-entrancy guard
   if (g_inExecute) {
-    return oDispatchHook(L, a1, a2);
+    return oLuaPcallk(L, nargs, nresults, errfunc, ctx, k);
   }
 
-  int count = g_pcallCount.fetch_add(1);
-  if (count < 5 || (count < 100 && count % 20 == 0) || count % 5000 == 0) {
-    LOGI("[hook] dispatch #%d (L=%p a1=%d a2=%d)", count, L, a1, a2);
-  }
-
-  // Update lua_State
-  g_luaState.store(L);
-
-  // Call original FIRST
-  int result = oDispatchHook(L, a1, a2);
-
-  // Dispatch queued command AFTER original returns
-  if (g_ready.load()) {
-    std::string cmdToRun;
-    {
-      std::lock_guard<std::mutex> lock(g_mtx);
-      if (!g_cmdQueue.empty()) {
-        cmdToRun = std::move(g_cmdQueue);
-        g_cmdQueue.clear();
-      }
-    }
-    if (!cmdToRun.empty()) {
-      LOGI("[hook] executing cmd (%zu bytes) on dispatch #%d", cmdToRun.size(),
-           count);
-      g_inExecute = true;
-      ExecuteLua(L, cmdToRun, "cmd");
-      g_inExecute = false;
+  // Dispatch queued command (same pattern as Windows)
+  std::string cmdToRun;
+  {
+    std::lock_guard<std::mutex> lock(g_mtx);
+    if (!g_cmdQueue.empty()) {
+      cmdToRun = std::move(g_cmdQueue);
+      g_cmdQueue.clear();
     }
   }
+  if (!cmdToRun.empty()) {
+    LOGI("[hook] executing cmd (%zu bytes) via lua_pcallk hook", cmdToRun.size());
+    g_inExecute = true;
+    ExecuteLua(L, cmdToRun, "cmd");
+    g_inExecute = false;
+  }
 
-  return result;
+  return oLuaPcallk(L, nargs, nresults, errfunc, ctx, k);
 }
 
 // ===========================================================================
@@ -592,7 +450,8 @@ static void *TcpServerThread(void *) {
 // luaopen_* hook — capture lua_State and compute API delta
 //
 // We hook all 5 exported luaopen_* functions via dlsym.
-// Whichever fires first captures L and computes the base delta.
+// Whichever fires first captures L, computes the base delta,
+// and hooks lua_pcallk for command dispatch.
 // ===========================================================================
 
 struct LuaOpenEntry {
@@ -615,58 +474,6 @@ static constexpr int LUAOPEN_COUNT =
 // Which entry fired
 static int g_firedIndex = -1;
 
-static int hkLuaOpen(void *L) {
-  // Determine which luaopen fired by checking return address against
-  // known addresses, or just use atomic compare-exchange on g_firedIndex
-  int expected = -1;
-
-  // Find which entry this is from __builtin_return_address context
-  // Actually, all hooks point here, so we check which original to call
-  // by matching the lua_State first-fire pattern
-  for (int i = 0; i < LUAOPEN_COUNT; i++) {
-    if (g_luaopenEntries[i].original != nullptr && g_firedIndex == -1) {
-      // Try this one
-      void *funcAddr = (void *)(g_delta + g_luaopenEntries[i].known_va);
-      // We can't easily distinguish which one called us since all hooks
-      // point to the same function. Use a different approach:
-      // Each hook gets its own trampoline. We'll set this up below.
-    }
-  }
-
-  LOGI("[luaopen] hook fired! L=%p", L);
-
-  // First time: capture L and compute delta
-  if (!g_ready.load()) {
-    g_luaState.store(L);
-    LOGI("[luaopen] Captured lua_State L=%p", L);
-
-    // Resolve API addresses via delta
-    if (g_delta != 0) {
-      pProtParser = (tLuaD_ProtParser)(g_delta + VA_LUAD_PROTPARSER);
-      pLuaD_Precall = (tLuaD_Precall)(g_delta + VA_LUAD_PRECALL);
-      pLuaV_Execute = (tLuaV_Execute)(g_delta + VA_LUAV_EXECUTE);
-      pRawRunProtected = (tLuaD_RawRunProtected)(g_delta + VA_LUAD_RAWRUNPROTECTED);
-
-      LOGI("[luaopen] API resolved: protparser=%p precall=%p execute=%p rawrun=%p",
-           (void *)pProtParser, (void *)pLuaD_Precall, (void *)pLuaV_Execute, (void *)pRawRunProtected);
-
-      // Hook dispatch function for command timing
-      void *hookAddr = (void *)(g_delta + VA_DISPATCH_HOOK);
-      int ret =
-          DobbyHook(hookAddr, (void *)hkDispatch, (void **)&oDispatchHook);
-      if (ret == 0) {
-        LOGI("[luaopen] dispatch hooked at %p for command dispatch",
-             hookAddr);
-        g_ready.store(true);
-      } else {
-        LOGE("[luaopen] dispatch hook FAILED: %d", ret);
-      }
-    }
-  }
-
-  return 0; // This won't be reached — see per-index hooks
-}
-
 // Per-index hook functions (each calls the right original)
 #define MAKE_LUAOPEN_HOOK(IDX)                                                 \
   static int hkLuaOpen_##IDX(void *L) {                                        \
@@ -677,20 +484,19 @@ static int hkLuaOpen(void *L) {
       LOGI("[luaopen] Captured lua_State L=%p from %s", L,                     \
            g_luaopenEntries[IDX].name);                                        \
       if (g_delta != 0) {                                                      \
-        pProtParser = (tLuaD_ProtParser)(g_delta + VA_LUAD_PROTPARSER);       \
-        pLuaD_Precall = (tLuaD_Precall)(g_delta + VA_LUAD_PRECALL);            \
-        pLuaV_Execute = (tLuaV_Execute)(g_delta + VA_LUAV_EXECUTE);            \
-        pRawRunProtected = (tLuaD_RawRunProtected)(g_delta + VA_LUAD_RAWRUNPROTECTED); \
-        LOGI("[luaopen] API resolved: protparser=%p precall=%p execute=%p rawrun=%p", \
-             (void *)pProtParser, (void *)pLuaD_Precall, (void *)pLuaV_Execute, \
-             (void *)pRawRunProtected);                                        \
-        void *hookAddr = (void *)(g_delta + VA_DISPATCH_HOOK);                 \
-        int ret =                                                              \
-            DobbyHook(hookAddr, (void *)hkDispatch, (void **)&oDispatchHook);  \
+        /* Resolve lua_load as direct function pointer */                       \
+        oLuaLoad = (tLuaLoad)(g_delta + VA_LUA_LOAD);                          \
+        LOGI("[luaopen] lua_load = %p", (void *)oLuaLoad);                     \
+        /* Hook lua_pcallk — mirrors Windows inject.cpp */                      \
+        void *pcallkAddr = (void *)(g_delta + VA_LUA_PCALLK);                  \
+        int ret = DobbyHook(pcallkAddr, (void *)hkLuaPcallk,                   \
+                            (void **)&oLuaPcallk);                             \
         if (ret == 0) {                                                        \
-          LOGI("[luaopen] dispatch hooked at %p", hookAddr);                   \
+          LOGI("[luaopen] lua_pcallk hooked at %p ✅", pcallkAddr);            \
+          g_ready.store(true);                                                 \
+        } else {                                                               \
+          LOGE("[luaopen] lua_pcallk hook FAILED: %d", ret);                   \
         }                                                                      \
-        g_ready.store(true);                                                 \
       }                                                                        \
     }                                                                          \
     return g_luaopenEntries[IDX].original(L);                                  \
@@ -796,16 +602,10 @@ static void *InitThread(void * /*arg*/) {
   if (g_delta != 0) {
     LOGI("[init] Pre-computed API addresses (delta=0x%lX):",
          (unsigned long)g_delta);
-    LOGI("[init]   dispatch_hook   = %p",
-         (void *)(g_delta + VA_DISPATCH_HOOK));
-    LOGI("[init]   rawrunprotected = %p",
-         (void *)(g_delta + VA_LUAD_RAWRUNPROTECTED));
-    LOGI("[init]   luaD_precall    = %p",
-         (void *)(g_delta + VA_LUAD_PRECALL));
-    LOGI("[init]   luaD_protparser = %p",
-         (void *)(g_delta + VA_LUAD_PROTPARSER));
-    LOGI("[init]   luaV_execute    = %p",
-         (void *)(g_delta + VA_LUAV_EXECUTE));
+    LOGI("[init]   lua_pcallk = %p (VA=0x%lX)",
+         (void *)(g_delta + VA_LUA_PCALLK), (unsigned long)VA_LUA_PCALLK);
+    LOGI("[init]   lua_load   = %p (VA=0x%lX)",
+         (void *)(g_delta + VA_LUA_LOAD), (unsigned long)VA_LUA_LOAD);
   }
 
   // Start TCP command server
