@@ -32,6 +32,7 @@ target_link_libraries(inject PRIVATE
     dobby_static
     log          # __android_log_print
     dl           # dl_iterate_phdr
+    OpenSLES     # Forces linker to load libOpenSLES.so to satisfy libGame.so
 )
 
 target_include_directories(inject PRIVATE
